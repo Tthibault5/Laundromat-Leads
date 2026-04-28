@@ -207,15 +207,36 @@ let expandedIds = new Set();
 function calcScore(l) {
   let s = 0;
   const r = l.rating || 5;
+
+  // Rating score
   if (r <= 2) s += 35; else if (r <= 2.5) s += 28; else if (r <= 3) s += 20; else if (r <= 3.5) s += 12; else if (r <= 4) s += 6;
-  if (l.reviewCount > 100) s += 15; else if (l.reviewCount > 50) s += 10; else if (l.reviewCount > 20) s += 5;
+
+  // No reviews = ghost business, high distress signal
+  if (l.hasNoReviews) {
+    s += 40; // big boost — no online presence is a major red flag
+  } else if (l.hasVeryFewReviews) {
+    s += 20; // very few reviews also signals neglect
+  } else if (l.reviewCount > 100) {
+    s += 15; // high volume = lots of complaints visible
+  } else if (l.reviewCount > 50) {
+    s += 10;
+  } else if (l.reviewCount > 20) {
+    s += 5;
+  }
+
+  // Density
   if (l.density === 'High') s += 15; else if (l.density === 'Medium') s += 7;
+
+  // Currently closed during normal hours
   if (l.openNow === false) s += 5;
+
   return Math.min(s, 99);
 }
 
 function getBadges(l) {
   const b = [];
+  if (l.hasNoReviews) b.push({ t: 'No online reviews', c: 'b-red' });
+  else if (l.hasVeryFewReviews) b.push({ t: 'Barely any reviews', c: 'b-amber' });
   if (l.rating <= 2.5) b.push({ t: 'Very low rating', c: 'b-red' });
   else if (l.rating <= 3.5) b.push({ t: 'Low rating', c: 'b-amber' });
   if (l.reviewCount > 100) b.push({ t: 'High review volume', c: 'b-red' });

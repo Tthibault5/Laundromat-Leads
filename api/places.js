@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Allow CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -11,7 +10,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'Google Places API key not configured' });
 
   try {
-    // Step 1: Geocode the location to get lat/lng
+    // Step 1: Geocode the location
     const geoRes = await fetch(
       `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`
     );
@@ -21,9 +20,9 @@ export default async function handler(req, res) {
     }
     const { lat, lng } = geoData.results[0].geometry.location;
 
-    // Step 2: Search for laundromats nearby
+    // Step 2: Search for laundromats nearby (tighter 5km radius)
     const searchRes = await fetch(
-      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=8000&type=laundry&keyword=laundromat&key=${apiKey}`
+      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=laundry&keyword=laundromat&key=${apiKey}`
     );
     const searchData = await searchRes.json();
     const places = (searchData.results || []).slice(0, 20);
@@ -32,7 +31,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ leads: [] });
     }
 
-    // Step 3: Get details for each place (phone, website, reviews)
+    // Step 3: Get details for each place
     const leads = await Promise.all(
       places.map(async (place) => {
         try {
@@ -42,14 +41,15 @@ export default async function handler(req, res) {
           const detailData = await detailRes.json();
           const d = detailData.result || {};
 
-          // Estimate density based on location type from geocoding
-          const density = estimateDensity(lat, lng, geoData.results[0]);
+          const density = estimateDensity(geoData.results[0]);
 
-          // Filter reviews to only negative ones (1-3 stars)
+          // Only keep reviews that have real text content and are negative (1-3 stars)
           const negativeReviews = (d.reviews || [])
-            .filter(r => r.rating <= 3)
-            .map(r => ({ text: r.text?.slice(0, 200) || '', author: r.author_name || 'Anonymous' }))
+            .filter(r => r.rating <= 3 && r.text && r.text.trim().length > 15)
+            .map(r => ({ text: r.text.slice(0, 200), author: r.author_name || 'Anonymous' }))
             .slice(0, 5);
+
+          const reviewCount = d.user_ratings_total || place.user_ratings_total || 0;
 
           return {
             id: place.place_id,
@@ -58,7 +58,9 @@ export default async function handler(req, res) {
             phone: d.formatted_phone_number || null,
             website: d.website || null,
             rating: d.rating || place.rating || null,
-            reviewCount: d.user_ratings_total || place.user_ratings_total || 0,
+            reviewCount: reviewCount,
+            hasNoReviews: reviewCount === 0,
+            hasVeryFewReviews: reviewCount > 0 && reviewCount < 5,
             density: density,
             openNow: d.opening_hours?.open_now ?? null,
             reviews: negativeReviews,
@@ -80,21 +82,11 @@ export default async function handler(req, res) {
   }
 }
 
-function estimateDensity(lat, lng, geocodeResult) {
-  // Use address components to estimate density
-  const types = geocodeResult?.types || [];
-  const components = geocodeResult?.address_components || [];
-
-  // Check if it's a major city or urban area
-  const isUrban = types.some(t => ['locality', 'sublocality', 'neighborhood'].includes(t));
+function estimateDensity(geocodeResult) {
   const addressStr = geocodeResult?.formatted_address?.toLowerCase() || '';
-
-  // Major dense metros
-  const denseCities = ['new york', 'chicago', 'philadelphia', 'boston', 'san francisco', 'washington', 'miami', 'los angeles', 'brooklyn', 'bronx', 'queens', 'newark', 'jersey city', 'detroit', 'baltimore', 'cleveland', 'pittsburgh', 'st. louis', 'new haven', 'hartford', 'manchester'];
-  const mediumCities = ['suburbs', 'township', 'heights', 'park', 'village', 'falls', 'grove', 'hill'];
-
+  const denseCities = ['new york', 'chicago', 'philadelphia', 'boston', 'san francisco', 'washington', 'miami', 'los angeles', 'brooklyn', 'bronx', 'queens', 'newark', 'jersey city', 'detroit', 'baltimore', 'cleveland', 'pittsburgh', 'st. louis', 'new haven', 'hartford', 'manchester', 'bridgeport', 'stamford'];
+  const mediumTerms = ['suburbs', 'township', 'heights', 'park', 'village', 'falls', 'grove', 'hill'];
   if (denseCities.some(c => addressStr.includes(c))) return 'High';
-  if (mediumCities.some(c => addressStr.includes(c))) return 'Medium';
-  if (isUrban) return 'Medium';
+  if (mediumTerms.some(c => addressStr.includes(c))) return 'Medium';
   return 'Low';
 }

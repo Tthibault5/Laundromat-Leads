@@ -1,4 +1,5 @@
 {
+  "outputDirectory": "public",
   "rewrites": [
     { "source": "/api/places", "destination": "/api/places.js" },
     { "source": "/(.*)", "destination": "/index.html" }

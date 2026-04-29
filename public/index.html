@@ -7,37 +7,37 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f0f0f;
-    --bg2: #171717;
-    --bg3: #1f1f1f;
-    --border: #2a2a2a;
-    --border2: #333;
-    --text: #e8e8e8;
-    --text2: #888;
-    --text3: #555;
-    --accent: #e8ff47;
-    --accent2: #b8cc1a;
-    --red: #ff4f4f;
-    --amber: #ffb347;
-    --teal: #3fffc0;
-    --blue: #47b8ff;
+    --bg: #0f0f0f; --bg2: #171717; --bg3: #1f1f1f;
+    --border: #2a2a2a; --border2: #333;
+    --text: #e8e8e8; --text2: #888; --text3: #555;
+    --accent: #e8ff47; --accent2: #b8cc1a;
+    --red: #ff4f4f; --amber: #ffb347; --teal: #3fffc0; --blue: #47b8ff;
     --radius: 10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
 
-  /* HEADER */
   header { border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
   .logo { display: flex; align-items: center; gap: 10px; }
   .logo-icon { width: 32px; height: 32px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
   .logo-text { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
   .logo-sub { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
   .header-badge { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); border: 1px solid var(--border2); border-radius: 99px; padding: 4px 12px; }
+  .saved-pill { font-size: 11px; font-family: 'DM Mono', monospace; background: rgba(232,255,71,0.1); color: var(--accent); border: 1px solid rgba(232,255,71,0.3); border-radius: 99px; padding: 4px 12px; cursor: pointer; transition: background 0.15s; display: none; }
+  .saved-pill:hover { background: rgba(232,255,71,0.18); }
 
-  /* MAIN LAYOUT */
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .tab { font-size: 13px; font-weight: 500; padding: 10px 18px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text2); transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; font-family: 'DM Sans', sans-serif; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover { color: var(--text); }
+
   .main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  .page { display: none; }
+  .page.active { display: block; }
 
-  /* SEARCH SECTION */
+  /* SEARCH */
   .search-section { margin-bottom: 28px; }
   .search-label { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
   .search-row { display: flex; gap: 10px; }
@@ -58,7 +58,7 @@
   select { width: 100%; background: transparent; border: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; cursor: pointer; }
   select option { background: var(--bg2); }
 
-  /* SUMMARY STATS */
+  /* SUMMARY */
   .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 24px; }
   .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
   .stat-num { font-size: 28px; font-weight: 600; font-family: 'DM Mono', monospace; line-height: 1; margin-bottom: 4px; }
@@ -75,7 +75,7 @@
   .lead-card:hover { border-color: var(--border2); }
   .score-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .score-circle { width: 52px; height: 52px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .sc-high { background: rgba(255, 79, 79, 0.15); border: 1.5px solid rgba(255,79,79,0.4); }
+  .sc-high { background: rgba(255,79,79,0.15); border: 1.5px solid rgba(255,79,79,0.4); }
   .sc-mid { background: rgba(255,179,71,0.12); border: 1.5px solid rgba(255,179,71,0.35); }
   .sc-low { background: rgba(63,255,192,0.1); border: 1.5px solid rgba(63,255,192,0.25); }
   .sc-high .sc-num { color: var(--red); }
@@ -99,12 +99,58 @@
   .btn-action { font-size: 11px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap; }
   .btn-action:hover { border-color: var(--text2); color: var(--text); }
   .btn-saved { border-color: var(--accent) !important; color: var(--accent) !important; }
-  .btn-script { border-color: rgba(71,184,255,0.3); color: var(--blue); }
-  .btn-script:hover { border-color: var(--blue) !important; color: var(--blue) !important; }
+  .btn-registry { border-color: rgba(71,184,255,0.3); color: var(--blue); }
+  .btn-registry:hover { border-color: var(--blue) !important; color: var(--blue) !important; }
   .snippet-box { margin-top: 12px; padding: 10px 12px; background: var(--bg3); border-radius: 7px; border-left: 2px solid var(--border2); display: none; }
   .snippet-box.open { display: block; }
   .snippet-item { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
   .snippet-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
+  /* SAVED PAGE */
+  .saved-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+  .saved-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .saved-sub { font-size: 13px; color: var(--text2); }
+  .saved-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-mailer { background: var(--accent); color: #0f0f0f; border: none; border-radius: var(--radius); padding: 10px 20px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .btn-mailer:hover { background: var(--accent2); }
+  .btn-mailer:disabled { background: var(--bg3); color: var(--text3); cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--text2); border: 1px solid var(--border2); border-radius: var(--radius); padding: 10px 20px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .btn-outline:hover { border-color: var(--text2); color: var(--text); }
+
+  /* MAILER TEMPLATE EDITOR */
+  .template-section { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 24px; }
+  .template-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+  .template-sub { font-size: 12px; color: var(--text2); margin-bottom: 14px; }
+  .template-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; }
+  .field-input { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 8px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; }
+  .field-input:focus { border-color: var(--accent); }
+  .field-textarea { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 10px 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color 0.15s; resize: vertical; min-height: 100px; width: 100%; }
+  .field-textarea:focus { border-color: var(--accent); }
+  .token-hint { font-size: 11px; color: var(--text3); margin-top: 6px; font-family: 'DM Mono', monospace; }
+
+  /* MAILER PREVIEW MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.hidden { display: none; }
+  .modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; width: 100%; max-width: 800px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .modal-title { font-size: 14px; font-weight: 500; }
+  .modal-close { background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1; }
+  .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* PRINT MAILER */
+  .mailer-preview { background: white; color: #1a1a1a; border-radius: 8px; padding: 40px 48px; font-family: Georgia, serif; margin-bottom: 16px; }
+  .mailer-preview + .mailer-preview { border-top: 3px dashed #ccc; margin-top: 8px; }
+  .mailer-from { font-size: 12px; color: #555; margin-bottom: 32px; line-height: 1.6; }
+  .mailer-to { font-size: 13px; color: #1a1a1a; margin-bottom: 28px; font-weight: 600; line-height: 1.6; }
+  .mailer-date { font-size: 12px; color: #555; margin-bottom: 24px; }
+  .mailer-body { font-size: 13px; line-height: 1.8; color: #333; white-space: pre-wrap; }
+  .mailer-sig { margin-top: 28px; font-size: 13px; color: #333; line-height: 1.8; }
+  .mailer-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .mailer-nav button { font-size: 12px; padding: 5px 12px; }
+  .mailer-counter { font-size: 12px; color: var(--text2); font-family: 'DM Mono', monospace; }
 
   /* EMPTY / LOADING */
   .empty { text-align: center; padding: 60px 20px; color: var(--text3); }
@@ -115,12 +161,21 @@
   .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  @media print {
+    body * { visibility: hidden; }
+    .print-area, .print-area * { visibility: visible; }
+    .print-area { position: fixed; inset: 0; background: white; padding: 0; }
+    .mailer-preview { page-break-after: always; border: none; box-shadow: none; margin: 0; border-radius: 0; }
+    .modal-header, .modal-footer, .mailer-nav { display: none !important; }
+  }
   @media (max-width: 600px) {
     .summary { grid-template-columns: repeat(2, 1fr); }
     .lead-card { flex-wrap: wrap; }
     .lead-actions { flex-direction: row; flex-wrap: wrap; width: 100%; }
     header { padding: 14px 16px; }
     .main { padding: 20px 16px; }
+    .template-fields { grid-template-columns: 1fr; }
+    .saved-header { flex-direction: column; gap: 14px; }
   }
 </style>
 </head>
@@ -134,102 +189,218 @@
       <div class="logo-sub">distress signal finder</div>
     </div>
   </div>
-  <div class="header-badge">v1.0 · powered by Google Places</div>
+  <div class="header-right">
+    <div class="saved-pill" id="savedPill" onclick="switchTab('saved')">📋 <span id="savedPillCount">0</span> saved</div>
+    <div class="header-badge">v2.0 · Google Places</div>
+  </div>
 </header>
 
 <div class="main">
+  <div class="tabs">
+    <button class="tab active" id="tab-search" onclick="switchTab('search')">🔍 Find Leads</button>
+    <button class="tab" id="tab-saved" onclick="switchTab('saved')">📋 Saved Leads <span id="tabSavedCount" style="font-size:11px;color:var(--text3)"></span></button>
+  </div>
 
-  <div class="search-section">
-    <div class="search-label">Search location</div>
-    <div class="search-row">
-      <input type="text" id="cityIn" class="search-input" placeholder="City, state or zip — e.g. Detroit, MI or 06040" />
-      <button class="btn-primary" id="searchBtn" onclick="runSearch()">Find Leads</button>
+  <!-- SEARCH PAGE -->
+  <div class="page active" id="page-search">
+    <div class="search-section">
+      <div class="search-label">Search location</div>
+      <div class="search-row">
+        <input type="text" id="cityIn" class="search-input" placeholder="City, state or zip — e.g. Detroit, MI or 06040" />
+        <button class="btn-primary" id="searchBtn" onclick="runSearch()">Find Leads</button>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div class="filter-card">
+        <div class="filter-label">Min distress score</div>
+        <input type="range" id="minScore" min="0" max="90" step="5" value="40" oninput="document.getElementById('msv').textContent=this.value;renderLeads()">
+        <div class="filter-val" id="msv">40</div>
+      </div>
+      <div class="filter-card">
+        <div class="filter-label">Max star rating</div>
+        <input type="range" id="maxStars" min="1" max="5" step="0.5" value="4" oninput="document.getElementById('stv').textContent=parseFloat(this.value).toFixed(1)+'★';renderLeads()">
+        <div class="filter-val" id="stv">4.0★</div>
+      </div>
+      <div class="filter-card">
+        <div class="filter-label">Signal filter</div>
+        <select id="sigFilter" onchange="renderLeads()">
+          <option value="any">Any signal</option>
+          <option value="noreviews">No reviews</option>
+          <option value="lowrating">Low rating (&lt;3★)</option>
+          <option value="manyreviews">Many reviews (50+)</option>
+          <option value="density">High density area</option>
+        </select>
+      </div>
+      <div class="filter-card">
+        <div class="filter-label">Sort by</div>
+        <select id="sortBy" onchange="renderLeads()">
+          <option value="score">Distress score</option>
+          <option value="rating">Lowest rating</option>
+          <option value="reviews">Most reviews</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="summary" id="summaryRow" style="display:none">
+      <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">total leads</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-high" style="color:var(--red)">0</div><div class="stat-lbl">high distress (70+)</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-noreviews" style="color:var(--amber)">0</div><div class="stat-lbl">no reviews</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-reviews" style="color:var(--teal)">0</div><div class="stat-lbl">50+ reviews</div></div>
+    </div>
+
+    <div class="results-bar" id="resultsBar" style="display:none">
+      <span class="results-label" id="resultsLabel"></span>
+      <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
+    </div>
+
+    <div id="leadsList">
+      <div class="empty">
+        <div class="empty-icon">🗺️</div>
+        <div class="empty-title">No leads loaded yet</div>
+        <div class="empty-sub">Enter a city or zip code above to find distressed laundromats</div>
+      </div>
     </div>
   </div>
 
-  <div class="filters">
-    <div class="filter-card">
-      <div class="filter-label">Min distress score</div>
-      <input type="range" id="minScore" min="0" max="90" step="5" value="40" oninput="document.getElementById('msv').textContent=this.value;renderLeads()">
-      <div class="filter-val" id="msv">40</div>
+  <!-- SAVED LEADS PAGE -->
+  <div class="page" id="page-saved">
+    <div class="saved-header">
+      <div>
+        <div class="saved-title">Saved Leads</div>
+        <div class="saved-sub" id="savedSubtitle">No leads saved yet — find and save leads from the search tab</div>
+      </div>
+      <div class="saved-actions">
+        <button class="btn-outline" onclick="exportSavedCSV()">Export CSV ↓</button>
+        <button class="btn-mailer" id="generateMailersBtn" onclick="openMailerModal()" disabled>✉️ Generate Mailers</button>
+      </div>
     </div>
-    <div class="filter-card">
-      <div class="filter-label">Max star rating</div>
-      <input type="range" id="maxStars" min="1" max="5" step="0.5" value="4" oninput="document.getElementById('stv').textContent=parseFloat(this.value).toFixed(1)+'★';renderLeads()">
-      <div class="filter-val" id="stv">4.0★</div>
+
+    <!-- MAILER TEMPLATE EDITOR -->
+    <div class="template-section" id="templateSection" style="display:none">
+      <div class="template-title">✉️ Mailer Template</div>
+      <div class="template-sub">Customize your letter. Use tokens: <code style="color:var(--accent);font-size:11px">{business_name}</code> <code style="color:var(--accent);font-size:11px">{business_address}</code> <code style="color:var(--accent);font-size:11px">{city}</code></div>
+      <div class="template-fields">
+        <div class="field-group">
+          <div class="field-label">Your name</div>
+          <input type="text" class="field-input" id="senderName" placeholder="John Smith" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your company</div>
+          <input type="text" class="field-input" id="senderCompany" placeholder="Smith Laundry Equipment Co." />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your address line 1</div>
+          <input type="text" class="field-input" id="senderAddr1" placeholder="123 Main Street" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your city, state, zip</div>
+          <input type="text" class="field-input" id="senderAddr2" placeholder="Hartford, CT 06103" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your phone</div>
+          <input type="text" class="field-input" id="senderPhone" placeholder="(860) 555-0100" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your email</div>
+          <input type="text" class="field-input" id="senderEmail" placeholder="john@smithlaundry.com" />
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:10px">
+        <div class="field-label">Letter body</div>
+        <textarea class="field-textarea" id="letterBody">Dear Owner of {business_name},
+
+I recently came across your laundromat at {business_address} and wanted to reach out directly.
+
+I specialize in helping laundromat owners in the {city} area modernize their equipment and improve their customer experience. Whether you're dealing with aging machines, looking to upgrade to card-operated systems, or considering selling your business, I'd love to have a conversation.
+
+Many owners I work with have found that a simple equipment refresh can significantly increase revenue and reduce maintenance headaches — often with flexible financing options that require no upfront cost.
+
+I'd welcome the chance to stop by or speak by phone at your convenience. There's no obligation — just a friendly conversation between two people who care about the local community.
+
+Please feel free to reach me at {sender_phone} or {sender_email}. I look forward to hearing from you.
+
+Warm regards,</textarea>
+      </div>
+      <div class="token-hint">Tokens auto-replaced: {business_name} {business_address} {city} {sender_name} {sender_company} {sender_phone} {sender_email}</div>
     </div>
-    <div class="filter-card">
-      <div class="filter-label">Signal filter</div>
-      <select id="sigFilter" onchange="renderLeads()">
-        <option value="any">Any signal</option>
-        <option value="lowrating">Low rating (&lt;3★)</option>
-        <option value="manyreviews">Many reviews (50+)</option>
-        <option value="density">High density area</option>
-      </select>
+
+    <div id="savedList"></div>
+  </div>
+</div>
+
+<!-- MAILER PREVIEW MODAL -->
+<div class="modal-overlay hidden" id="mailerModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Mailer Preview</div>
+      <button class="modal-close" onclick="closeMailerModal()">✕</button>
     </div>
-    <div class="filter-card">
-      <div class="filter-label">Sort by</div>
-      <select id="sortBy" onchange="renderLeads()">
-        <option value="score">Distress score</option>
-        <option value="rating">Lowest rating</option>
-        <option value="reviews">Most reviews</option>
-      </select>
+    <div class="modal-body print-area" id="mailerBody"></div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeMailerModal()">Close</button>
+      <button class="btn-mailer" onclick="window.print()">🖨️ Print All Mailers</button>
     </div>
   </div>
-
-  <div class="summary" id="summaryRow" style="display:none">
-    <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">total leads</div></div>
-    <div class="stat-card"><div class="stat-num" id="s-high" style="color:var(--red)">0</div><div class="stat-lbl">high distress (70+)</div></div>
-    <div class="stat-card"><div class="stat-num" id="s-low" style="color:var(--amber)">0</div><div class="stat-lbl">low rated (&lt;3★)</div></div>
-    <div class="stat-card"><div class="stat-num" id="s-reviews" style="color:var(--teal)">0</div><div class="stat-lbl">50+ reviews</div></div>
-  </div>
-
-  <div class="results-bar" id="resultsBar" style="display:none">
-    <span class="results-label" id="resultsLabel"></span>
-    <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
-  </div>
-
-  <div id="leadsList">
-    <div class="empty">
-      <div class="empty-icon">🗺️</div>
-      <div class="empty-title">No leads loaded yet</div>
-      <div class="empty-sub">Enter a city or zip code above to find distressed laundromats</div>
-    </div>
-  </div>
-
 </div>
 
 <script>
 let allLeads = [];
-let savedIds = new Set();
 let expandedIds = new Set();
+
+// Persist saved leads across sessions using localStorage
+function getSaved() {
+  try { return JSON.parse(localStorage.getItem('savedLeads') || '[]'); } catch { return []; }
+}
+function setSaved(leads) {
+  try { localStorage.setItem('savedLeads', JSON.stringify(leads)); } catch {}
+}
+function isSaved(id) { return getSaved().some(l => l.id === id); }
+function saveLeadData(lead) {
+  const saved = getSaved();
+  if (!saved.some(l => l.id === lead.id)) { saved.push(lead); setSaved(saved); }
+  updateSavedUI();
+}
+function unsaveLead(id) {
+  setSaved(getSaved().filter(l => l.id !== id));
+  updateSavedUI();
+  renderSaved();
+}
+
+function updateSavedUI() {
+  const count = getSaved().length;
+  const pill = document.getElementById('savedPill');
+  const tabCount = document.getElementById('tabSavedCount');
+  document.getElementById('savedPillCount').textContent = count;
+  pill.style.display = count > 0 ? 'block' : 'none';
+  tabCount.textContent = count > 0 ? `(${count})` : '';
+  const btn = document.getElementById('generateMailersBtn');
+  if (btn) btn.disabled = count === 0;
+  const tpl = document.getElementById('templateSection');
+  if (tpl) tpl.style.display = count > 0 ? 'block' : 'none';
+  const sub = document.getElementById('savedSubtitle');
+  if (sub) sub.textContent = count > 0 ? `${count} lead${count !== 1 ? 's' : ''} saved — customize your mailer template below, then generate print-ready letters` : 'No leads saved yet — find and save leads from the search tab';
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
+  document.getElementById('tab-saved').classList.toggle('active', tab === 'saved');
+  document.getElementById('page-search').classList.toggle('active', tab === 'search');
+  document.getElementById('page-saved').classList.toggle('active', tab === 'saved');
+  if (tab === 'saved') renderSaved();
+}
 
 function calcScore(l) {
   let s = 0;
   const r = l.rating || 5;
-
-  // Rating score
   if (r <= 2) s += 35; else if (r <= 2.5) s += 28; else if (r <= 3) s += 20; else if (r <= 3.5) s += 12; else if (r <= 4) s += 6;
-
-  // No reviews = ghost business, high distress signal
-  if (l.hasNoReviews) {
-    s += 40; // big boost — no online presence is a major red flag
-  } else if (l.hasVeryFewReviews) {
-    s += 20; // very few reviews also signals neglect
-  } else if (l.reviewCount > 100) {
-    s += 15; // high volume = lots of complaints visible
-  } else if (l.reviewCount > 50) {
-    s += 10;
-  } else if (l.reviewCount > 20) {
-    s += 5;
-  }
-
-  // Density
+  if (l.hasNoReviews) s += 40;
+  else if (l.hasVeryFewReviews) s += 20;
+  else if (l.reviewCount > 100) s += 15;
+  else if (l.reviewCount > 50) s += 10;
+  else if (l.reviewCount > 20) s += 5;
   if (l.density === 'High') s += 15; else if (l.density === 'Medium') s += 7;
-
-  // Currently closed during normal hours
   if (l.openNow === false) s += 5;
-
   return Math.min(s, 99);
 }
 
@@ -252,8 +423,78 @@ function starsStr(r) {
   return '★'.repeat(Math.floor(r)) + (r % 1 >= 0.5 ? '½' : '') + ' ' + parseFloat(r).toFixed(1);
 }
 
-function toggleExpand(id) { if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id); renderLeads(); }
-function toggleSave(id) { if (savedIds.has(id)) savedIds.delete(id); else savedIds.add(id); renderLeads(); }
+function getRegistryUrl(lead) {
+  const addr = (lead.address || '').toLowerCase();
+  const stateMap = {
+    ', ct': 'https://www.concord-sots.ct.gov/CONCORD/online?sn=PublicInquiry&eid=9740',
+    ', ma': 'https://corp.sec.state.ma.us/CorpWeb/CorpSearch/CorpSearch.aspx',
+    ', ny': 'https://apps.dos.ny.gov/publicInquiry/',
+    ', nj': 'https://www.njportal.com/DOR/BusinessNameSearch',
+    ', pa': 'https://www.corporations.pa.gov/search/corpsearch',
+    ', fl': 'https://search.sunbiz.org/Inquiry/CorporationSearch/ByName',
+    ', ca': 'https://bizfileonline.sos.ca.gov/search/business',
+    ', tx': 'https://www.sos.state.tx.us/corp/sosda/index.shtml',
+    ', il': 'https://www.ilsos.gov/corporatellc/',
+    ', oh': 'https://businesssearch.ohiosos.gov/',
+    ', mi': 'https://cofs.lara.state.mi.us/SearchApi/Search/Search',
+    ', ga': 'https://ecorp.sos.ga.gov/BusinessSearch',
+    ', nc': 'https://www.sosnc.gov/online_services/search/by_title/_Business_Registration',
+    ', va': 'https://cis.scc.virginia.gov/',
+    ', wa': 'https://ccfs.sos.wa.gov/#/BusinessSearch',
+  };
+  for (const [key, url] of Object.entries(stateMap)) {
+    if (addr.includes(key)) return url;
+  }
+  return `https://www.google.com/search?q=${encodeURIComponent((lead.name || '') + ' owner business registration')}`;
+}
+
+function toggleExpand(id) {
+  if (expandedIds.has(id)) expandedIds.delete(id); else expandedIds.add(id);
+  renderLeads();
+}
+
+function toggleSave(lead) {
+  if (isSaved(lead.id)) {
+    unsaveLead(lead.id);
+  } else {
+    saveLeadData(lead);
+  }
+  renderLeads();
+}
+
+function renderLeadCard(l, fromSaved = false) {
+  const sc = l.score >= 70 ? 'sc-high' : l.score >= 50 ? 'sc-mid' : 'sc-low';
+  const saved = isSaved(l.id);
+  const expanded = expandedIds.has(l.id);
+  const badges = getBadges(l).map(b => `<span class="badge ${b.c}">${b.t}</span>`).join('');
+  const reviews = (l.reviews || []).map(r => `<div class="snippet-item">"${r.text}" <span style="color:var(--text3)">— ${r.author}</span></div>`).join('');
+  const registryUrl = getRegistryUrl(l);
+  const dataAttr = `data-lead='${JSON.stringify(l).replace(/'/g, "&#39;")}'`;
+  return `<div class="lead-card">
+    <div class="score-wrap">
+      <div class="score-circle ${sc}"><span class="sc-num">${l.score}</span></div>
+      <span class="sc-sub">distress</span>
+    </div>
+    <div class="lead-body">
+      <div class="lead-name">${l.name}</div>
+      <div class="lead-addr">${l.address || 'Address unavailable'}</div>
+      <div class="badges">${badges || '<span class="badge b-gray">Low signals</span>'}</div>
+      <div class="lead-meta">
+        <span class="stars">${starsStr(l.rating)}</span>
+        <span>${l.reviewCount} reviews</span>
+        ${l.phone ? `<span>${l.phone}</span>` : ''}
+        ${l.website ? `<a href="${l.website}" target="_blank" style="color:var(--blue);text-decoration:none">website ↗</a>` : ''}
+      </div>
+      ${reviews ? `<div class="snippet-box ${expanded ? 'open' : ''}">${reviews}</div>` : ''}
+    </div>
+    <div class="lead-actions">
+      <button class="btn-action ${saved ? 'btn-saved' : ''}" ${dataAttr} onclick="toggleSave(JSON.parse(this.dataset.lead))">${saved ? '✓ Saved' : 'Save'}</button>
+      ${reviews ? `<button class="btn-action" onclick="toggleExpand('${l.id}')">${expanded ? 'Hide' : 'Reviews'}</button>` : ''}
+      <a href="${registryUrl}" target="_blank"><button class="btn-action btn-registry">Registry ↗</button></a>
+      ${fromSaved ? `<button class="btn-action" style="color:var(--red);border-color:rgba(255,79,79,0.3)" onclick="unsaveLead('${l.id}')">Remove</button>` : ''}
+    </div>
+  </div>`;
+}
 
 function renderLeads() {
   const minS = parseInt(document.getElementById('minScore').value);
@@ -268,13 +509,14 @@ function renderLeads() {
 
   document.getElementById('s-total').textContent = allLeads.length;
   document.getElementById('s-high').textContent = allLeads.filter(l => l.score >= 70).length;
-  document.getElementById('s-low').textContent = allLeads.filter(l => l.rating && l.rating < 3).length;
+  document.getElementById('s-noreviews').textContent = allLeads.filter(l => l.hasNoReviews).length;
   document.getElementById('s-reviews').textContent = allLeads.filter(l => l.reviewCount >= 50).length;
   sumRow.style.display = 'grid';
 
   let filtered = allLeads.filter(l => {
     if (l.score < minS) return false;
     if (l.rating && l.rating > maxR) return false;
+    if (sig === 'noreviews' && !l.hasNoReviews) return false;
     if (sig === 'lowrating' && (!l.rating || l.rating >= 3)) return false;
     if (sig === 'manyreviews' && l.reviewCount < 50) return false;
     if (sig === 'density' && l.density !== 'High') return false;
@@ -290,58 +532,98 @@ function renderLeads() {
     list.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No leads match filters</div><div class="empty-sub">Try lowering the minimum score or raising the max star rating</div></div>';
     return;
   }
-
-  list.innerHTML = filtered.map(l => {
-    const sc = l.score >= 70 ? 'sc-high' : l.score >= 50 ? 'sc-mid' : 'sc-low';
-    const saved = savedIds.has(l.id);
-    const expanded = expandedIds.has(l.id);
-    const badges = getBadges(l).map(b => `<span class="badge ${b.c}">${b.t}</span>`).join('');
-    const reviews = (l.reviews || []).map(r => `<div class="snippet-item">"${r.text}" <span style="color:var(--text3)">— ${r.author}</span></div>`).join('');
-    const safeName = (l.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-    const safeAddr = (l.address || '').replace(/'/g, "\\'");
-    return `<div class="lead-card">
-      <div class="score-wrap">
-        <div class="score-circle ${sc}">
-          <span class="sc-num">${l.score}</span>
-        </div>
-        <span class="sc-sub">distress</span>
-      </div>
-      <div class="lead-body">
-        <div class="lead-name">${l.name}</div>
-        <div class="lead-addr">${l.address || 'Address unavailable'}</div>
-        <div class="badges">${badges || '<span class="badge b-gray">Low signals</span>'}</div>
-        <div class="lead-meta">
-          <span class="stars">${starsStr(l.rating)}</span>
-          <span>${l.reviewCount} reviews</span>
-          ${l.phone ? `<span>${l.phone}</span>` : ''}
-          ${l.website ? `<a href="${l.website}" target="_blank" style="color:var(--blue);text-decoration:none">website ↗</a>` : ''}
-        </div>
-        ${reviews ? `<div class="snippet-box ${expanded ? 'open' : ''}">${reviews}</div>` : ''}
-      </div>
-      <div class="lead-actions">
-        <button class="btn-action ${saved ? 'btn-saved' : ''}" onclick="toggleSave('${l.id}')">${saved ? '✓ Saved' : 'Save'}</button>
-        ${reviews ? `<button class="btn-action" onclick="toggleExpand('${l.id}')">${expanded ? 'Hide' : 'Reviews'}</button>` : ''}
-        <button class="btn-action btn-script" onclick="openScript('${l.id}')">Script ↗</button>
-      </div>
-    </div>`;
-  }).join('');
+  list.innerHTML = filtered.map(l => renderLeadCard(l)).join('');
 }
 
-function openScript(id) {
-  const l = allLeads.find(x => x.id === id);
-  if (!l) return;
-  const msg = `Write a short cold outreach script for this laundromat lead:\n\nName: ${l.name}\nAddress: ${l.address}\nPhone: ${l.phone || 'unknown'}\nRating: ${l.rating} stars (${l.reviewCount} reviews)\nDistress score: ${l.score}/99\n\nMake it conversational, focused on offering machine upgrades or business acquisition. Keep it under 150 words.`;
-  navigator.clipboard.writeText(msg).then(() => alert('Outreach prompt copied to clipboard — paste it into Claude!')).catch(() => alert('Script prompt:\n\n' + msg));
+function renderSaved() {
+  const saved = getSaved();
+  const list = document.getElementById('savedList');
+  if (!saved.length) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No saved leads</div><div class="empty-sub">Go to Find Leads, search a city, and click Save on any lead</div></div>';
+    return;
+  }
+  list.innerHTML = saved.map(l => renderLeadCard(l, true)).join('');
+}
+
+// MAILER GENERATION
+function openMailerModal() {
+  const saved = getSaved();
+  if (!saved.length) return;
+  const body = document.getElementById('mailerBody');
+  body.innerHTML = saved.map((l, i) => buildMailer(l, i)).join('');
+  document.getElementById('mailerModal').classList.remove('hidden');
+}
+
+function closeMailerModal() {
+  document.getElementById('mailerModal').classList.add('hidden');
+}
+
+function buildMailer(lead, index) {
+  const senderName = document.getElementById('senderName').value || 'Your Name';
+  const senderCompany = document.getElementById('senderCompany').value || 'Your Company';
+  const senderAddr1 = document.getElementById('senderAddr1').value || '123 Main Street';
+  const senderAddr2 = document.getElementById('senderAddr2').value || 'Your City, State ZIP';
+  const senderPhone = document.getElementById('senderPhone').value || 'Your Phone';
+  const senderEmail = document.getElementById('senderEmail').value || 'Your Email';
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  // Extract city from address
+  const cityMatch = (lead.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
+  const city = cityMatch ? cityMatch[1].trim() : 'your area';
+
+  let body = document.getElementById('letterBody').value;
+  body = body
+    .replace(/\{business_name\}/g, lead.name || 'your business')
+    .replace(/\{business_address\}/g, lead.address || '')
+    .replace(/\{city\}/g, city)
+    .replace(/\{sender_name\}/g, senderName)
+    .replace(/\{sender_company\}/g, senderCompany)
+    .replace(/\{sender_phone\}/g, senderPhone)
+    .replace(/\{sender_email\}/g, senderEmail);
+
+  return `<div class="mailer-preview" id="mailer-${index}">
+    <div class="mailer-from">
+      <strong>${senderName}</strong><br>
+      ${senderCompany}<br>
+      ${senderAddr1}<br>
+      ${senderAddr2}<br>
+      ${senderPhone} · ${senderEmail}
+    </div>
+    <div class="mailer-date">${today}</div>
+    <div class="mailer-to">
+      Owner / Operator<br>
+      ${lead.name}<br>
+      ${lead.address || ''}
+    </div>
+    <div class="mailer-body">${body}</div>
+    <div class="mailer-sig">
+      Sincerely,<br><br><br>
+      <strong>${senderName}</strong><br>
+      ${senderCompany}
+    </div>
+  </div>`;
 }
 
 function exportCSV() {
   if (!allLeads.length) return;
-  const rows = [['Name', 'Address', 'Phone', 'Rating', 'Reviews', 'Density', 'Distress Score', 'Website']];
-  allLeads.forEach(l => rows.push([`"${l.name}"`, `"${l.address || ''}"`, l.phone || '', l.rating || '', l.reviewCount, l.density, l.score, l.website || '']));
+  const rows = [['Name', 'Address', 'Phone', 'Rating', 'Reviews', 'Density', 'Distress Score', 'No Reviews', 'Website', 'Registry Link']];
+  allLeads.forEach(l => rows.push([`"${l.name}"`, `"${l.address || ''}"`, l.phone || '', l.rating || '', l.reviewCount, l.density, l.score, l.hasNoReviews ? 'Yes' : 'No', l.website || '', getRegistryUrl(l)]));
+  downloadCSV(rows, 'laundromat_leads.csv');
+}
+
+function exportSavedCSV() {
+  const saved = getSaved();
+  if (!saved.length) return;
+  const rows = [['Name', 'Address', 'Phone', 'Rating', 'Reviews', 'Distress Score', 'Registry Link']];
+  saved.forEach(l => rows.push([`"${l.name}"`, `"${l.address || ''}"`, l.phone || '', l.rating || '', l.reviewCount, l.score, getRegistryUrl(l)]));
+  downloadCSV(rows, 'saved_leads.csv');
+}
+
+function downloadCSV(rows, filename) {
   const csv = rows.map(r => r.join(',')).join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-  a.download = 'laundromat_leads.csv';
+  a.download = filename;
   a.click();
 }
 
@@ -353,16 +635,12 @@ async function runSearch() {
   document.getElementById('leadsList').innerHTML = '<div class="loading"><div class="spinner"></div><div>Finding laundromats in ' + city + '...</div></div>';
   document.getElementById('summaryRow').style.display = 'none';
   document.getElementById('resultsBar').style.display = 'none';
-
   try {
     const res = await fetch(`/api/places?location=${encodeURIComponent(city)}`);
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'API error ' + res.status);
-    }
+    if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'API error ' + res.status); }
     const data = await res.json();
     allLeads = (data.leads || []).map((l, i) => ({ ...l, id: l.id || 'lm_' + i, score: calcScore(l) }));
-    savedIds.clear(); expandedIds.clear();
+    expandedIds.clear();
     renderLeads();
   } catch (err) {
     document.getElementById('leadsList').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Search failed</div><div class="empty-sub">${err.message}</div></div>`;
@@ -372,6 +650,10 @@ async function runSearch() {
 }
 
 document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+document.getElementById('mailerModal').addEventListener('click', e => { if (e.target === document.getElementById('mailerModal')) closeMailerModal(); });
+
+// Init
+updateSavedUI();
 </script>
 </body>
 </html>

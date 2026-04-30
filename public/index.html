@@ -73,15 +73,19 @@
   /* LEAD CARDS */
   .lead-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 10px; display: flex; gap: 14px; transition: border-color 0.15s; }
   .lead-card:hover { border-color: var(--border2); }
-  .score-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .score-circle { width: 52px; height: 52px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .score-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 64px; }
+  .score-pill { width: 60px; border-radius: 8px; padding: 6px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   .sc-high { background: rgba(255,79,79,0.15); border: 1.5px solid rgba(255,79,79,0.4); }
   .sc-mid { background: rgba(255,179,71,0.12); border: 1.5px solid rgba(255,179,71,0.35); }
   .sc-low { background: rgba(63,255,192,0.1); border: 1.5px solid rgba(63,255,192,0.25); }
+  .sc-accent { background: rgba(232,255,71,0.12); border: 1.5px solid rgba(232,255,71,0.4); }
+  .sc-blue { background: rgba(71,184,255,0.1); border: 1.5px solid rgba(71,184,255,0.3); }
   .sc-high .sc-num { color: var(--red); }
   .sc-mid .sc-num { color: var(--amber); }
   .sc-low .sc-num { color: var(--teal); }
-  .sc-num { font-size: 18px; font-weight: 600; font-family: 'DM Mono', monospace; line-height: 1; }
+  .sc-accent .sc-num { color: var(--accent); }
+  .sc-blue .sc-num { color: var(--blue); }
+  .sc-num { font-size: 16px; font-weight: 600; font-family: 'DM Mono', monospace; line-height: 1; }
   .sc-sub { font-size: 8px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
   .lead-body { flex: 1; min-width: 0; }
   .lead-name { font-size: 15px; font-weight: 500; margin-bottom: 3px; }
@@ -220,7 +224,7 @@
 
     <div class="filters">
       <div class="filter-card">
-        <div class="filter-label">Min distress score</div>
+        <div class="filter-label">Min desirability score</div>
         <input type="range" id="minScore" min="0" max="90" step="5" value="40" oninput="document.getElementById('msv').textContent=this.value;renderLeads()">
         <div class="filter-val" id="msv">40</div>
       </div>
@@ -242,7 +246,9 @@
       <div class="filter-card">
         <div class="filter-label">Sort by</div>
         <select id="sortBy" onchange="renderLeads()">
-          <option value="score">Distress score</option>
+          <option value="desirability">Desirability score</option>
+          <option value="distress">Distress score</option>
+          <option value="density">Density score</option>
           <option value="rating">Lowest rating</option>
           <option value="reviews">Most reviews</option>
         </select>
@@ -251,9 +257,9 @@
 
     <div class="summary" id="summaryRow" style="display:none">
       <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">total leads</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-high" style="color:var(--red)">0</div><div class="stat-lbl">high distress (70+)</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-noreviews" style="color:var(--amber)">0</div><div class="stat-lbl">no reviews</div></div>
-      <div class="stat-card"><div class="stat-num" id="s-reviews" style="color:var(--teal)">0</div><div class="stat-lbl">50+ reviews</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-desirable" style="color:var(--accent)">0</div><div class="stat-lbl">high desirability (70+)</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-distressed" style="color:var(--red)">0</div><div class="stat-lbl">high distress (70+)</div></div>
+      <div class="stat-card"><div class="stat-num" id="s-density" style="color:var(--teal)">0</div><div class="stat-lbl">high density (70+)</div></div>
     </div>
 
     <div class="results-bar" id="resultsBar" style="display:none">
@@ -397,31 +403,74 @@ function switchTab(tab) {
   if (tab === 'saved') renderSaved();
 }
 
-function calcScore(l) {
+// DISTRESS SCORE (0-100): rating + review signals + owner responsiveness
+function calcDistressScore(l) {
   let s = 0;
   const r = l.rating || 5;
-  if (r <= 2) s += 35; else if (r <= 2.5) s += 28; else if (r <= 3) s += 20; else if (r <= 3.5) s += 12; else if (r <= 4) s += 6;
+  if (r <= 2) s += 35; else if (r <= 2.5) s += 28; else if (r <= 3) s += 20;
+  else if (r <= 3.5) s += 12; else if (r <= 4) s += 6;
   if (l.hasNoReviews) s += 40;
   else if (l.hasVeryFewReviews) s += 20;
   else if (l.reviewCount > 100) s += 15;
   else if (l.reviewCount > 50) s += 10;
   else if (l.reviewCount > 20) s += 5;
-  if (l.density === 'High') s += 15; else if (l.density === 'Medium') s += 7;
+  if (!l.hasOwnerResponses && l.reviewCount > 5) s += 15;
+  else if (!l.hasOwnerResponses && l.reviewCount > 0) s += 8;
   if (l.openNow === false) s += 5;
   return Math.min(s, 99);
+}
+
+// DENSITY SCORE (0-100): population + multi-family housing from Census
+function calcDensityScore(l) {
+  let s = 0;
+  const c = l.censusData;
+  if (!c) {
+    const addr = (l.address || '').toLowerCase();
+    const dense = ['new york','chicago','philadelphia','boston','san francisco','washington','miami','los angeles','brooklyn','bronx','queens','newark','jersey city','detroit','baltimore','cleveland','pittsburgh','st. louis','new haven','hartford','manchester','bridgeport','stamford','worcester','springfield','providence'];
+    if (dense.some(x => addr.includes(x))) return 65;
+    if (addr.includes('township') || addr.includes('village')) return 30;
+    return 20;
+  }
+  const pop = c.totalPopulation;
+  if (pop >= 50000) s += 30; else if (pop >= 30000) s += 24;
+  else if (pop >= 20000) s += 18; else if (pop >= 10000) s += 12;
+  else if (pop >= 5000) s += 6;
+  const mfPct = c.multiFamilyPct;
+  if (mfPct >= 60) s += 50; else if (mfPct >= 45) s += 42;
+  else if (mfPct >= 30) s += 32; else if (mfPct >= 20) s += 22;
+  else if (mfPct >= 10) s += 12; else s += 4;
+  const units = c.totalHousingUnits;
+  if (units >= 20000) s += 20; else if (units >= 10000) s += 16;
+  else if (units >= 5000) s += 11; else if (units >= 2000) s += 6;
+  else s += 2;
+  return Math.min(s, 99);
+}
+
+// DESIRABILITY SCORE (0-100): 50% distress + 50% density
+function calcDesirabilityScore(distress, density) {
+  return Math.min(Math.round((distress * 0.5) + (density * 0.5)), 99);
+}
+
+function calcAllScores(l) {
+  const distress = calcDistressScore(l);
+  const density = calcDensityScore(l);
+  const desirability = calcDesirabilityScore(distress, density);
+  return { distress, density, desirability };
 }
 
 function getBadges(l) {
   const b = [];
   if (l.hasNoReviews) b.push({ t: 'No online reviews', c: 'b-red' });
   else if (l.hasVeryFewReviews) b.push({ t: 'Barely any reviews', c: 'b-amber' });
-  if (l.rating <= 2.5) b.push({ t: 'Very low rating', c: 'b-red' });
-  else if (l.rating <= 3.5) b.push({ t: 'Low rating', c: 'b-amber' });
-  if (l.reviewCount > 100) b.push({ t: 'High review volume', c: 'b-red' });
-  else if (l.reviewCount > 50) b.push({ t: '50+ reviews', c: 'b-amber' });
-  if (l.density === 'High') b.push({ t: 'Dense area', c: 'b-teal' });
-  else if (l.density === 'Medium') b.push({ t: 'Mid density', c: 'b-blue' });
+  if (l.rating && l.rating <= 2.5) b.push({ t: 'Very low rating', c: 'b-red' });
+  else if (l.rating && l.rating <= 3.5) b.push({ t: 'Low rating', c: 'b-amber' });
+  if (!l.hasOwnerResponses && l.reviewCount > 5) b.push({ t: 'Owner unresponsive', c: 'b-red' });
+  if (l.reviewCount > 100) b.push({ t: 'High complaint volume', c: 'b-amber' });
   if (l.openNow === false) b.push({ t: 'Currently closed', c: 'b-gray' });
+  if (l.censusData) {
+    if (l.censusData.multiFamilyPct >= 20) b.push({ t: l.censusData.multiFamilyPct + '% multi-family', c: l.censusData.multiFamilyPct >= 45 ? 'b-teal' : 'b-blue' });
+    if (l.censusData.totalPopulation >= 30000) b.push({ t: 'Pop. ' + (l.censusData.totalPopulation/1000).toFixed(0) + 'k', c: 'b-teal' });
+  }
   return b;
 }
 
@@ -470,7 +519,9 @@ function toggleSave(lead) {
 }
 
 function renderLeadCard(l, fromSaved = false) {
-  const sc = l.score >= 70 ? 'sc-high' : l.score >= 50 ? 'sc-mid' : 'sc-low';
+  const dClass = l.distressScore >= 70 ? 'sc-high' : l.distressScore >= 50 ? 'sc-mid' : 'sc-low';
+  const nClass = l.densityScore >= 70 ? 'sc-accent' : l.densityScore >= 50 ? 'sc-blue' : 'sc-low';
+  const desClass = l.desirabilityScore >= 70 ? 'sc-accent' : l.desirabilityScore >= 50 ? 'sc-mid' : 'sc-low';
   const saved = isSaved(l.id);
   const expanded = expandedIds.has(l.id);
   const badges = getBadges(l).map(b => `<span class="badge ${b.c}">${b.t}</span>`).join('');
@@ -479,8 +530,9 @@ function renderLeadCard(l, fromSaved = false) {
   const dataAttr = `data-lead='${JSON.stringify(l).replace(/'/g, "&#39;")}'`;
   return `<div class="lead-card">
     <div class="score-wrap">
-      <div class="score-circle ${sc}"><span class="sc-num">${l.score}</span></div>
-      <span class="sc-sub">distress</span>
+      <div class="score-pill ${desClass}"><span class="sc-num">${l.desirabilityScore}</span><span class="sc-sub">desire</span></div>
+      <div class="score-pill ${dClass}"><span class="sc-num">${l.distressScore}</span><span class="sc-sub">distress</span></div>
+      <div class="score-pill ${nClass}"><span class="sc-num">${l.densityScore}</span><span class="sc-sub">density</span></div>
     </div>
     <div class="lead-body">
       <div class="lead-name">${l.name}</div>
@@ -518,13 +570,13 @@ function renderLeads() {
   if (!allLeads.length) { bar.style.display = 'none'; sumRow.style.display = 'none'; return; }
 
   document.getElementById('s-total').textContent = allLeads.length;
-  document.getElementById('s-high').textContent = allLeads.filter(l => l.score >= 70).length;
-  document.getElementById('s-noreviews').textContent = allLeads.filter(l => l.hasNoReviews).length;
-  document.getElementById('s-reviews').textContent = allLeads.filter(l => l.reviewCount >= 50).length;
+  document.getElementById('s-desirable').textContent = allLeads.filter(l => l.desirabilityScore >= 70).length;
+  document.getElementById('s-distressed').textContent = allLeads.filter(l => l.distressScore >= 70).length;
+  document.getElementById('s-density').textContent = allLeads.filter(l => l.densityScore >= 70).length;
   sumRow.style.display = 'grid';
 
   let filtered = allLeads.filter(l => {
-    if (l.score < minS) return false;
+    if (l.desirabilityScore < minS) return false;
     if (l.rating && l.rating > maxR) return false;
     if (sig === 'noreviews' && !l.hasNoReviews) return false;
     if (sig === 'lowrating' && (!l.rating || l.rating >= 3)) return false;
@@ -533,7 +585,13 @@ function renderLeads() {
     return true;
   });
 
-  filtered.sort((a, b) => sort === 'score' ? b.score - a.score : sort === 'rating' ? (a.rating || 5) - (b.rating || 5) : b.reviewCount - a.reviewCount);
+  filtered.sort((a, b) => {
+    if (sort === 'desirability') return b.desirabilityScore - a.desirabilityScore;
+    if (sort === 'distress') return b.distressScore - a.distressScore;
+    if (sort === 'density') return b.densityScore - a.densityScore;
+    if (sort === 'rating') return (a.rating || 5) - (b.rating || 5);
+    return b.reviewCount - a.reviewCount;
+  });
 
   bar.style.display = 'flex';
   document.getElementById('resultsLabel').textContent = filtered.length + ' lead' + (filtered.length !== 1 ? 's' : '') + ' shown';
@@ -609,16 +667,16 @@ function buildMailer(lead, index) {
 
 function exportCSV() {
   if (!allLeads.length) return;
-  const rows = [['Name', 'Address', 'Phone', 'Rating', 'Reviews', 'Density', 'Distress Score', 'No Reviews', 'Website', 'Registry Link']];
-  allLeads.forEach(l => rows.push([`"${l.name}"`, `"${l.address || ''}"`, l.phone || '', l.rating || '', l.reviewCount, l.density, l.score, l.hasNoReviews ? 'Yes' : 'No', l.website || '', getRegistryUrl(l)]));
+  const rows = [['Name', 'Address', 'Phone', 'Rating', 'Reviews', 'Desirability Score', 'Distress Score', 'Density Score', 'No Reviews', 'Multi-Family %', 'Website', 'Registry Link']];
+  allLeads.forEach(l => rows.push([`"${l.name}"`, `"${l.address || ''}"`, l.phone || '', l.rating || '', l.reviewCount, l.desirabilityScore, l.distressScore, l.densityScore, l.hasNoReviews ? 'Yes' : 'No', l.censusData ? l.censusData.multiFamilyPct + '%' : '', l.website || '', getRegistryUrl(l)]));
   downloadCSV(rows, 'laundromat_leads.csv');
 }
 
 function exportSavedCSV() {
   const saved = getSaved();
   if (!saved.length) return;
-  const rows = [['Name', 'Address', 'Phone', 'Rating', 'Reviews', 'Distress Score', 'Registry Link']];
-  saved.forEach(l => rows.push([`"${l.name}"`, `"${l.address || ''}"`, l.phone || '', l.rating || '', l.reviewCount, l.score, getRegistryUrl(l)]));
+  const rows = [['Name', 'Address', 'Phone', 'Rating', 'Reviews', 'Desirability Score', 'Distress Score', 'Density Score', 'Registry Link']];
+  saved.forEach(l => rows.push([`"${l.name}"`, `"${l.address || ''}"`, l.phone || '', l.rating || '', l.reviewCount, l.desirabilityScore, l.distressScore, l.densityScore, getRegistryUrl(l)]));
   downloadCSV(rows, 'saved_leads.csv');
 }
 
@@ -642,7 +700,10 @@ async function runSearch() {
     const res = await fetch(`/api/places?location=${encodeURIComponent(city)}`);
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'API error ' + res.status); }
     const data = await res.json();
-    allLeads = (data.leads || []).map((l, i) => ({ ...l, id: l.id || 'lm_' + i, score: calcScore(l) }));
+    allLeads = (data.leads || []).map((l, i) => {
+      const scores = calcAllScores(l);
+      return { ...l, id: l.id || 'lm_' + i, distressScore: scores.distress, densityScore: scores.density, desirabilityScore: scores.desirability };
+    });
     expandedIds.clear();
     renderLeads();
   } catch (err) {

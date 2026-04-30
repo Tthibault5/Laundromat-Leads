@@ -36,7 +36,7 @@ export default async function handler(req, res) {
       places.map(async (place) => {
         try {
           const detailRes = await fetch(
-            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,reviews,opening_hours,geometry&key=${apiKey}`
+            `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,reviews,opening_hours,geometry,photos&key=${apiKey}`
           );
           const detailData = await detailRes.json();
           const d = detailData.result || {};
@@ -51,6 +51,11 @@ export default async function handler(req, res) {
 
           const reviewCount = d.user_ratings_total || place.user_ratings_total || 0;
 
+          // Get up to 3 photo URLs
+          const photos = (d.photos || place.photos || [])
+            .slice(0, 3)
+            .map(p => `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=${p.photo_reference}&key=${apiKey}`);
+
           return {
             id: place.place_id,
             name: d.name || place.name,
@@ -64,6 +69,7 @@ export default async function handler(req, res) {
             density: density,
             openNow: d.opening_hours?.open_now ?? null,
             reviews: negativeReviews,
+            photos: photos,
             lat: d.geometry?.location?.lat || place.geometry?.location?.lat,
             lng: d.geometry?.location?.lng || place.geometry?.location?.lng,
           };

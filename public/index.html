@@ -283,44 +283,44 @@
       <div class="template-fields">
         <div class="field-group">
           <div class="field-label">Your name</div>
-          <input type="text" class="field-input" id="senderName" placeholder="John Smith" />
+          <input type="text" class="field-input" id="senderName" value="Tommy Thibault" />
         </div>
         <div class="field-group">
           <div class="field-label">Your company</div>
-          <input type="text" class="field-input" id="senderCompany" placeholder="Smith Laundry Equipment Co." />
+          <input type="text" class="field-input" id="senderCompany" value="" placeholder="Optional" />
         </div>
         <div class="field-group">
           <div class="field-label">Your address line 1</div>
-          <input type="text" class="field-input" id="senderAddr1" placeholder="123 Main Street" />
+          <input type="text" class="field-input" id="senderAddr1" value="180 Heath Street, Unit 1" />
         </div>
         <div class="field-group">
           <div class="field-label">Your city, state, zip</div>
-          <input type="text" class="field-input" id="senderAddr2" placeholder="Hartford, CT 06103" />
+          <input type="text" class="field-input" id="senderAddr2" value="Jamaica Plain, MA 02130" />
         </div>
         <div class="field-group">
           <div class="field-label">Your phone</div>
-          <input type="text" class="field-input" id="senderPhone" placeholder="(860) 555-0100" />
+          <input type="text" class="field-input" id="senderPhone" value="(203) 461-5119" />
         </div>
         <div class="field-group">
           <div class="field-label">Your email</div>
-          <input type="text" class="field-input" id="senderEmail" placeholder="john@smithlaundry.com" />
+          <input type="text" class="field-input" id="senderEmail" value="Tthibault5@outlook.com" />
         </div>
       </div>
       <div class="field-group" style="margin-bottom:10px">
         <div class="field-label">Letter body</div>
-        <textarea class="field-textarea" id="letterBody">Dear Owner of {business_name},
+        <textarea class="field-textarea" id="letterBody">Hello {business_name},
 
-I recently came across your laundromat at {business_address} and wanted to reach out directly.
+My name is Tommy Thibault. I am a small time investor in Connecticut looking to acquire and operate a laundromat in the area long-term.
 
-I specialize in helping laundromat owners in the {city} area modernize their equipment and improve their customer experience. Whether you're dealing with aging machines, looking to upgrade to card-operated systems, or considering selling your business, I'd love to have a conversation.
+I came across your location and wanted to reach out directly. If you have ever considered selling, retiring, partnering, or stepping back from day-to-day operations, I would welcome a confidential conversation.
 
-Many owners I work with have found that a simple equipment refresh can significantly increase revenue and reduce maintenance headaches — often with flexible financing options that require no upfront cost.
+I understand timing matters, and there is absolutely no pressure. If now is not the right time, I would still be glad to connect for the future.
 
-I'd welcome the chance to stop by or speak by phone at your convenience. There's no obligation — just a friendly conversation between two people who care about the local community.
+You can reach me directly at (203) 461-5119 or Tthibault5@outlook.com.
 
-Please feel free to reach me at {sender_phone} or {sender_email}. I look forward to hearing from you.
+Thank you for your time.
 
-Warm regards,</textarea>
+Sincerely,</textarea>
       </div>
       <div class="token-hint">Tokens auto-replaced: {business_name} {business_address} {city} {sender_name} {sender_company} {sender_phone} {sender_email}</div>
     </div>
@@ -559,12 +559,11 @@ function closeMailerModal() {
 }
 
 function buildMailer(lead, index) {
-  const senderName = document.getElementById('senderName').value || 'Your Name';
-  const senderCompany = document.getElementById('senderCompany').value || 'Your Company';
-  const senderAddr1 = document.getElementById('senderAddr1').value || '123 Main Street';
-  const senderAddr2 = document.getElementById('senderAddr2').value || 'Your City, State ZIP';
-  const senderPhone = document.getElementById('senderPhone').value || 'Your Phone';
-  const senderEmail = document.getElementById('senderEmail').value || 'Your Email';
+  const senderName = document.getElementById('senderName').value || 'Tommy Thibault';
+  const senderAddr1 = document.getElementById('senderAddr1').value || '180 Heath Street, Unit 1';
+  const senderAddr2 = document.getElementById('senderAddr2').value || 'Jamaica Plain, MA 02130';
+  const senderPhone = document.getElementById('senderPhone').value || '(203) 461-5119';
+  const senderEmail = document.getElementById('senderEmail').value || 'Tthibault5@outlook.com';
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   // Extract city from address
@@ -577,29 +576,23 @@ function buildMailer(lead, index) {
     .replace(/\{business_address\}/g, lead.address || '')
     .replace(/\{city\}/g, city)
     .replace(/\{sender_name\}/g, senderName)
-    .replace(/\{sender_company\}/g, senderCompany)
     .replace(/\{sender_phone\}/g, senderPhone)
     .replace(/\{sender_email\}/g, senderEmail);
 
   return `<div class="mailer-preview" id="mailer-${index}">
     <div class="mailer-from">
-      <strong>${senderName}</strong><br>
-      ${senderCompany}<br>
-      ${senderAddr1}<br>
-      ${senderAddr2}<br>
-      ${senderPhone} · ${senderEmail}
+      ${today}<br>
+      ${senderAddr1}, ${senderAddr2}<br>
+      Email: ${senderEmail} &nbsp;·&nbsp; Phone: ${senderPhone}
     </div>
-    <div class="mailer-date">${today}</div>
     <div class="mailer-to">
-      Owner / Operator<br>
       ${lead.name}<br>
       ${lead.address || ''}
     </div>
     <div class="mailer-body">${body}</div>
     <div class="mailer-sig">
-      Sincerely,<br><br><br>
-      <strong>${senderName}</strong><br>
-      ${senderCompany}
+      <br>
+      ${senderName}
     </div>
   </div>`;
 }

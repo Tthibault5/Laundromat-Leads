@@ -173,11 +173,32 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   @media print {
+    @page {
+      margin: 0.75in;
+      size: letter;
+    }
+    /* Remove browser-added header/footer/URL/page numbers */
+    @page { margin-top: 0.75in; margin-bottom: 0.75in; }
+    html { -webkit-print-color-adjust: exact; }
     body * { visibility: hidden; }
-    .print-area, .print-area * { visibility: visible; }
-    .print-area { position: fixed; inset: 0; background: white; padding: 0; }
-    .mailer-preview { page-break-after: always; border: none; box-shadow: none; margin: 0; border-radius: 0; }
-    .modal-header, .modal-footer, .mailer-nav { display: none !important; }
+    #printContainer, #printContainer * { visibility: visible; }
+    #printContainer {
+      position: fixed;
+      inset: 0;
+      background: white;
+      overflow: visible;
+    }
+    .mailer-page {
+      page-break-after: always;
+      page-break-inside: avoid;
+      background: white;
+      padding: 0;
+      margin: 0;
+      border: none;
+      box-shadow: none;
+      border-radius: 0;
+    }
+    .mailer-page:last-child { page-break-after: avoid; }
   }
   @media (max-width: 600px) {
     .summary { grid-template-columns: repeat(2, 1fr); }
@@ -343,6 +364,9 @@ Sincerely,</textarea>
 </div>
 
 <!-- MAILER PREVIEW MODAL -->
+<!-- Hidden print container — populated on print -->
+<div id="printContainer" style="display:none"></div>
+
 <div class="modal-overlay hidden" id="mailerModal">
   <div class="modal">
     <div class="modal-header">
@@ -352,7 +376,7 @@ Sincerely,</textarea>
     <div class="modal-body print-area" id="mailerBody"></div>
     <div class="modal-footer">
       <button class="btn-outline" onclick="closeMailerModal()">Close</button>
-      <button class="btn-mailer" onclick="window.print()">🖨️ Print All Mailers</button>
+      <button class="btn-mailer" onclick="printMailers()">🖨️ Print All Mailers</button>
     </div>
   </div>
 </div>
@@ -617,9 +641,20 @@ function renderSaved() {
 function openMailerModal() {
   const saved = getSaved();
   if (!saved.length) return;
-  const body = document.getElementById('mailerBody');
-  body.innerHTML = saved.map((l, i) => buildMailer(l, i)).join('');
+  const mailersHtml = saved.map((l, i) => buildMailer(l, i)).join('');
+  // Populate modal preview
+  document.getElementById('mailerBody').innerHTML = mailersHtml;
+  // Populate hidden print container (clean, no modal chrome)
+  document.getElementById('printContainer').innerHTML = mailersHtml;
   document.getElementById('mailerModal').classList.remove('hidden');
+}
+
+function printMailers() {
+  // Show print container, hide everything else, print, restore
+  const pc = document.getElementById('printContainer');
+  pc.style.display = 'block';
+  window.print();
+  pc.style.display = 'none';
 }
 
 function closeMailerModal() {
@@ -647,7 +682,7 @@ function buildMailer(lead, index) {
     .replace(/\{sender_phone\}/g, senderPhone)
     .replace(/\{sender_email\}/g, senderEmail);
 
-  return `<div class="mailer-preview" id="mailer-${index}">
+  return `<div class="mailer-page mailer-preview" id="mailer-${index}">
     <div class="mailer-from">
       ${today}<br>
       ${senderAddr1}, ${senderAddr2}<br>

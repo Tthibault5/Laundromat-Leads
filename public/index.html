@@ -642,23 +642,79 @@ function openMailerModal() {
   const saved = getSaved();
   if (!saved.length) return;
   const mailersHtml = saved.map((l, i) => buildMailer(l, i)).join('');
-  // Populate modal preview
   document.getElementById('mailerBody').innerHTML = mailersHtml;
-  // Populate hidden print container (clean, no modal chrome)
-  document.getElementById('printContainer').innerHTML = mailersHtml;
   document.getElementById('mailerModal').classList.remove('hidden');
-}
-
-function printMailers() {
-  // Show print container, hide everything else, print, restore
-  const pc = document.getElementById('printContainer');
-  pc.style.display = 'block';
-  window.print();
-  pc.style.display = 'none';
 }
 
 function closeMailerModal() {
   document.getElementById('mailerModal').classList.add('hidden');
+}
+
+function printMailers() {
+  const saved = getSaved();
+  if (!saved.length) return;
+
+  // Build each mailer as a full standalone page separated by page breaks
+  const mailerPages = saved.map((l, i) => {
+    const senderName = document.getElementById('senderName').value || 'Tommy Thibault';
+    const senderAddr1 = document.getElementById('senderAddr1').value || '180 Heath Street, Unit 1';
+    const senderAddr2 = document.getElementById('senderAddr2').value || 'Jamaica Plain, MA 02130';
+    const senderPhone = document.getElementById('senderPhone').value || '(203) 461-5119';
+    const senderEmail = document.getElementById('senderEmail').value || 'Tthibault5@outlook.com';
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const cityMatch = (l.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
+    const city = cityMatch ? cityMatch[1].trim() : 'your area';
+    let body = document.getElementById('letterBody').value;
+    body = body
+      .replace(/\{business_name\}/g, l.name || 'your business')
+      .replace(/\{business_address\}/g, l.address || '')
+      .replace(/\{city\}/g, city)
+      .replace(/\{sender_name\}/g, senderName)
+      .replace(/\{sender_phone\}/g, senderPhone)
+      .replace(/\{sender_email\}/g, senderEmail);
+    const breakStyle = i < saved.length - 1 ? 'page-break-after:always;' : '';
+    return `
+      <div style="font-family:Georgia,serif;color:#1a1a1a;padding:72px 80px;${breakStyle}">
+        <div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">
+          ${today}<br>
+          ${senderAddr1}, ${senderAddr2}<br>
+          Email: ${senderEmail} &nbsp;&middot;&nbsp; Phone: ${senderPhone}
+        </div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">
+          ${l.name}<br>
+          ${l.address || ''}
+        </div>
+        <div style="font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap">${body}</div>
+        <div style="margin-top:40px;font-size:13px;line-height:1.9;color:#333">
+          <br><br>${senderName}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Open a completely blank popup window — no URL, no title, no chrome
+  const printWin = window.open('', '_blank', 'width=900,height=700');
+  printWin.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: white; }
+  @page { margin: 0; size: letter; }
+  @media print {
+    html, body { margin: 0; padding: 0; }
+  }
+</style>
+</head>
+<body>${mailerPages}</body>
+</html>`);
+  printWin.document.close();
+  printWin.focus();
+  // Small delay to ensure content renders before print dialog opens
+  setTimeout(() => {
+    printWin.print();
+    printWin.close();
+  }, 400);
 }
 
 function buildMailer(lead, index) {

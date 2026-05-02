@@ -863,30 +863,21 @@ function getStatus(id) { return getStatuses()[id] || 'none'; }
 // ── MAP ────────────────────────────────────────────────────────────
 let map = null;
 let markers = [];
+let googleMapsKey = null;
 let activeMarkerIndex = null;
 let mapsApiLoaded = false;
 let sharedInfoWindow = null;
 
-async function loadMapsApi() {
-  if (mapsApiLoaded) return;
-  if (window._mapsReady) return;
+function loadMapsApi() {
+  if (mapsApiLoaded || window._mapsReady || document.getElementById('gmaps-script')) return;
+  if (!googleMapsKey) { console.warn('Maps key not yet available'); return; }
   mapsApiLoaded = true;
-  try {
-    // Fetch the key from our server-side endpoint
-    const res = await fetch('/api/mapskey');
-    const data = await res.json();
-    if (!data.key) throw new Error('No key returned');
-    // Build the script tag directly with the key — avoids redirect callback issues
-    const script = document.createElement('script');
-    script.id = 'gmaps-script';
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${data.key}&callback=initMap&libraries=geometry&loading=async`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-  } catch(e) {
-    console.error('Failed to load Maps API:', e);
-    mapsApiLoaded = false;
-  }
+  const script = document.createElement('script');
+  script.id = 'gmaps-script';
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + googleMapsKey + '&callback=initMap&libraries=geometry&loading=async';
+  script.async = true;
+  script.defer = true;
+  document.head.appendChild(script);
 }
 
 function initMapView() {
@@ -894,26 +885,33 @@ function initMapView() {
     document.getElementById('mapSubtitle').textContent = 'Search for leads first to see them on the map';
     return;
   }
-  // Show loading spinner immediately
   document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
 
-  if (window._mapsReady) {
+  if (window._mapsReady && typeof google !== 'undefined') {
     renderMap();
-  } else {
-    window._mapsReadyCb = renderMap;
-    loadMapsApi();
-    // Fallback poll — in case callback fires before our listener is set
-    let attempts = 0;
-    const poll = setInterval(() => {
-      attempts++;
-      if (window._mapsReady || typeof google !== 'undefined') {
-        clearInterval(poll);
-        window._mapsReady = true;
-        renderMap();
-      }
-      if (attempts > 30) clearInterval(poll); // stop after 15s
-    }, 500);
+    return;
   }
+
+  // Set callback for when script loads
+  window._mapsReadyCb = renderMap;
+
+  // Load the script if not already loading
+  loadMapsApi();
+
+  // Poll as safety net (handles race conditions)
+  let attempts = 0;
+  const poll = setInterval(() => {
+    attempts++;
+    if (typeof google !== 'undefined' && google.maps) {
+      clearInterval(poll);
+      window._mapsReady = true;
+      renderMap();
+    }
+    if (attempts > 20) {
+      clearInterval(poll);
+      document.getElementById('mainMap').innerHTML = '<div class="map-empty"><span>⚠️</span><span>Map failed to load — check your Google Maps API key has Maps JavaScript API enabled</span></div>';
+    }
+  }, 500);
 }
 
 function renderMap() {
@@ -1123,15 +1121,18 @@ async function runSearch() {
       const scores = calcAllScores(l);
       return { ...l, id: l.id || 'lm_' + i, distressScore: scores.distress, densityScore: scores.density, desirabilityScore: scores.desirability };
     });
+    // Store the maps key from the search response and load Maps API immediately
+    if (data.mapsKey) {
+      googleMapsKey = data.mapsKey;
+      loadMapsApi(); // start loading in background right after search completes
+    }
     expandedIds.clear();
     // Reset map state so it re-renders fresh for new search
     map = null;
     markers = [];
     activeMarkerIndex = null;
     renderLeads();
-    // Pre-load Maps API in background so map tab is instant
-    loadMapsApi();
-    // If map tab is already open, render immediately
+    // If map tab is already open, trigger render
     if (document.getElementById('tab-map').classList.contains('active')) initMapView();
   } catch (err) {
     document.getElementById('leadsList').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Search failed</div><div class="empty-sub">${err.message}</div></div>`;

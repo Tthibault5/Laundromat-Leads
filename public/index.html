@@ -172,6 +172,23 @@
   .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+
+  /* MAP */
+  .map-container { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 24px; position: relative; }
+  #mainMap { width: 100%; height: 480px; background: var(--bg2); }
+  .map-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .map-empty { display: flex; align-items: center; justify-content: center; height: 480px; background: var(--bg2); color: var(--text3); font-size: 13px; flex-direction: column; gap: 8px; }
+
+  /* STATUS BADGE on lead cards */
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; flex-shrink: 0; }
+  .status-row { display: flex; align-items: center; margin-top: 6px; }
+  .status-select { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 11px; padding: 3px 7px; outline: none; cursor: pointer; }
+  .status-select:focus { border-color: var(--accent); }
+
+  /* INFO WINDOW custom styles injected via JS */
+
   @media print {
     @page {
       margin: 0.75in;
@@ -210,6 +227,10 @@
     .saved-header { flex-direction: column; gap: 14px; }
   }
 </style>
+<script>
+  // Google Maps loaded dynamically after search so we have the API key available
+  window.initMap = function() { window._mapsReady = true; if (window._mapsReadyCb) window._mapsReadyCb(); };
+</script>
 </head>
 <body>
 
@@ -231,6 +252,7 @@
   <div class="tabs">
     <button class="tab active" id="tab-search" onclick="switchTab('search')">🔍 Find Leads</button>
     <button class="tab" id="tab-saved" onclick="switchTab('saved')">📋 Saved Leads <span id="tabSavedCount" style="font-size:11px;color:var(--text3)"></span></button>
+    <button class="tab" id="tab-map" onclick="switchTab('map')">🗺️ Map View</button>
   </div>
 
   <!-- SEARCH PAGE -->
@@ -361,6 +383,30 @@ Sincerely,</textarea>
 
     <div id="savedList"></div>
   </div>
+
+  <!-- MAP PAGE -->
+  <div class="page" id="page-map">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <div style="font-size:20px;font-weight:600;margin-bottom:4px">Map View</div>
+        <div style="font-size:13px;color:var(--text2)" id="mapSubtitle">Search for leads first to see them on the map</div>
+      </div>
+    </div>
+    <div class="map-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#9E9E9E"></div>Not contacted</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FDD835"></div>1st letter sent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FB8C00"></div>2nd letter sent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1E88E5"></div>Email sent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8E24AA"></div>Owner contacted</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#43A047"></div>They responded!</div>
+    </div>
+    <div class="map-container">
+      <div id="mainMap">
+        <div class="map-empty"><span style="font-size:28px">🗺️</span><span>Search for leads to populate the map</span></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- MAILER PREVIEW MODAL -->
@@ -420,11 +466,12 @@ function updateSavedUI() {
 }
 
 function switchTab(tab) {
-  document.getElementById('tab-search').classList.toggle('active', tab === 'search');
-  document.getElementById('tab-saved').classList.toggle('active', tab === 'saved');
-  document.getElementById('page-search').classList.toggle('active', tab === 'search');
-  document.getElementById('page-saved').classList.toggle('active', tab === 'saved');
+  ['search','saved','map'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('page-' + t).classList.toggle('active', t === tab);
+  });
   if (tab === 'saved') renderSaved();
+  if (tab === 'map') initMapView();
 }
 
 // DISTRESS SCORE (0-100): rating + review signals + owner responsiveness
@@ -571,6 +618,12 @@ function renderLeadCard(l, fromSaved = false) {
         ${l.phone ? `<span>${l.phone}</span>` : ''}
         ${l.website ? `<a href="${l.website}" target="_blank" style="color:var(--blue);text-decoration:none">website ↗</a>` : ''}
       </div>
+      <div class="status-row">
+        <span class="status-dot" style="background:${STATUS_CONFIG[getStatus(l.id)].dot}"></span>
+        <select class="status-select" onchange="setStatus('${l.id}', this.value)">
+          ${Object.entries(STATUS_CONFIG).map(([val,cfg]) => `<option value="${val}" ${getStatus(l.id)===val?'selected':''}>${cfg.label}</option>`).join('')}
+        </select>
+      </div>
       ${reviews ? `<div class="snippet-box ${expanded ? 'open' : ''}">${reviews}</div>` : ''}
     </div>
     <div class="lead-actions">
@@ -701,10 +754,31 @@ function printMailers() {
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: white; }
   @page { margin: 0; size: letter; }
+
+  /* MAP */
+  .map-container { border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); margin-bottom: 24px; position: relative; }
+  #mainMap { width: 100%; height: 480px; background: var(--bg2); }
+  .map-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .map-empty { display: flex; align-items: center; justify-content: center; height: 480px; background: var(--bg2); color: var(--text3); font-size: 13px; flex-direction: column; gap: 8px; }
+
+  /* STATUS BADGE on lead cards */
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; flex-shrink: 0; }
+  .status-row { display: flex; align-items: center; margin-top: 6px; }
+  .status-select { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 11px; padding: 3px 7px; outline: none; cursor: pointer; }
+  .status-select:focus { border-color: var(--accent); }
+
+  /* INFO WINDOW custom styles injected via JS */
+
   @media print {
     html, body { margin: 0; padding: 0; }
   }
 </style>
+<script>
+  // Google Maps loaded dynamically after search so we have the API key available
+  window.initMap = function() { window._mapsReady = true; if (window._mapsReadyCb) window._mapsReadyCb(); };
+</script>
 </head>
 <body>${mailerPages}</body>
 </html>`);
@@ -779,6 +853,193 @@ function downloadCSV(rows, filename) {
   a.click();
 }
 
+
+// ── STATUS SYSTEM ──────────────────────────────────────────────────
+const STATUS_CONFIG = {
+  none:     { label: 'Not contacted',   color: '#9E9E9E', dot: '#9E9E9E' },
+  letter1:  { label: '1st letter sent', color: '#FDD835', dot: '#FDD835' },
+  letter2:  { label: '2nd letter sent', color: '#FB8C00', dot: '#FB8C00' },
+  email:    { label: 'Email sent',      color: '#1E88E5', dot: '#1E88E5' },
+  owner:    { label: 'Owner contacted', color: '#8E24AA', dot: '#8E24AA' },
+  responded:{ label: 'They responded!', color: '#43A047', dot: '#43A047' },
+};
+
+function getStatuses() {
+  try { return JSON.parse(localStorage.getItem('leadStatuses') || '{}'); } catch { return {}; }
+}
+function setStatus(id, status) {
+  const s = getStatuses(); s[id] = status; localStorage.setItem('leadStatuses', JSON.stringify(s));
+  refreshMapMarkers();
+  renderLeads();
+  if (document.getElementById('page-saved').classList.contains('active')) renderSaved();
+}
+function getStatus(id) { return getStatuses()[id] || 'none'; }
+
+// ── MAP ────────────────────────────────────────────────────────────
+let map = null;
+let markers = [];
+let searchBoundary = null;
+let mapsApiLoaded = false;
+
+function loadMapsApi() {
+  if (mapsApiLoaded || document.getElementById('gmaps-script')) return;
+  mapsApiLoaded = true;
+  const script = document.createElement('script');
+  script.id = 'gmaps-script';
+  script.src = '/api/mapskey';
+  script.async = true;
+  document.head.appendChild(script);
+}
+
+function initMapView() {
+  if (!allLeads.length) return;
+  loadMapsApi();
+  if (window._mapsReady) {
+    renderMap();
+  } else {
+    window._mapsReadyCb = renderMap;
+  }
+}
+
+function renderMap() {
+  const mapDiv = document.getElementById('mainMap');
+  // Clear old empty state
+  mapDiv.innerHTML = '';
+
+  // Find center from first lead with coords
+  const leadsWithCoords = allLeads.filter(l => l.lat && l.lng);
+  if (!leadsWithCoords.length) return;
+
+  const center = { lat: leadsWithCoords[0].lat, lng: leadsWithCoords[0].lng };
+
+  if (!map) {
+    map = new google.maps.Map(mapDiv, {
+      center,
+      zoom: 13,
+      mapTypeId: 'roadmap',
+      styles: [
+        { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#8888aa' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
+        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2d2d44' }] },
+        { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a1a2e' }] },
+        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1117' }] },
+        { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#1e1e2e' }] },
+        { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#1e1e2e' }] },
+        { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#e8ff47' }, { weight: 1.5 }] },
+      ],
+      disableDefaultUI: false,
+      zoomControl: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: true,
+    });
+  } else {
+    map.setCenter(center);
+    mapDiv.style.height = '480px';
+  }
+
+  placeMarkers();
+  fitMapToBounds(leadsWithCoords);
+  document.getElementById('mapSubtitle').textContent = allLeads.length + ' laundromats shown — click a pin to see details and update status';
+}
+
+function placeMarkers() {
+  // Clear existing markers
+  markers.forEach(m => m.setMap(null));
+  markers = [];
+
+  const statuses = getStatuses();
+  const infoWindow = new google.maps.InfoWindow();
+
+  allLeads.filter(l => l.lat && l.lng).forEach(lead => {
+    const status = statuses[lead.id] || 'none';
+    const cfg = STATUS_CONFIG[status];
+
+    const marker = new google.maps.Marker({
+      position: { lat: lead.lat, lng: lead.lng },
+      map,
+      title: lead.name,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: cfg.color,
+        fillOpacity: 0.95,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      },
+      zIndex: status === 'responded' ? 100 : status === 'none' ? 1 : 50,
+    });
+
+    marker.addListener('click', () => {
+      const currentStatus = getStatus(lead.id);
+      const statusOptions = Object.entries(STATUS_CONFIG)
+        .map(([val, cfg]) => `<option value="${val}" ${val === currentStatus ? 'selected' : ''}>${cfg.label}</option>`)
+        .join('');
+
+      infoWindow.setContent(`
+        <div style="font-family:'DM Sans',sans-serif;padding:4px;min-width:220px;max-width:280px">
+          <div style="font-weight:600;font-size:14px;margin-bottom:4px;color:#1a1a1a">${lead.name}</div>
+          <div style="font-size:12px;color:#555;margin-bottom:10px">${lead.address || ''}</div>
+          <div style="display:flex;gap:10px;margin-bottom:10px;font-size:12px;color:#333">
+            <span>⭐ ${lead.rating ? lead.rating.toFixed(1) : 'N/A'}</span>
+            <span>💬 ${lead.reviewCount} reviews</span>
+            ${lead.phone ? `<span>📞 ${lead.phone}</span>` : ''}
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:10px">
+            <div style="background:#fff3e0;border-radius:6px;padding:4px 8px;font-size:11px;text-align:center;flex:1">
+              <div style="font-size:16px;font-weight:700;color:#e65100">${lead.desirabilityScore}</div>
+              <div style="color:#555">desire</div>
+            </div>
+            <div style="background:#fce4ec;border-radius:6px;padding:4px 8px;font-size:11px;text-align:center;flex:1">
+              <div style="font-size:16px;font-weight:700;color:#c62828">${lead.distressScore}</div>
+              <div style="color:#555">distress</div>
+            </div>
+            <div style="background:#e8f5e9;border-radius:6px;padding:4px 8px;font-size:11px;text-align:center;flex:1">
+              <div style="font-size:16px;font-weight:700;color:#2e7d32">${lead.densityScore}</div>
+              <div style="color:#555">density</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:#555;margin-bottom:5px;font-weight:500">Update outreach status:</div>
+          <select onchange="setStatus('${lead.id}', this.value); google.maps.event.trigger(arguments[0].target, 'change')"
+            style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;background:white;cursor:pointer">
+            ${statusOptions}
+          </select>
+        </div>
+      `);
+      infoWindow.open(map, marker);
+    });
+
+    markers.push(marker);
+  });
+}
+
+function refreshMapMarkers() {
+  if (!map || !markers.length) return;
+  const statuses = getStatuses();
+  markers.forEach((marker, i) => {
+    const lead = allLeads.filter(l => l.lat && l.lng)[i];
+    if (!lead) return;
+    const status = statuses[lead.id] || 'none';
+    const cfg = STATUS_CONFIG[status];
+    marker.setIcon({
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 10,
+      fillColor: cfg.color,
+      fillOpacity: 0.95,
+      strokeColor: '#ffffff',
+      strokeWeight: 2,
+    });
+  });
+}
+
+function fitMapToBounds(leads) {
+  if (!leads.length || !map) return;
+  const bounds = new google.maps.LatLngBounds();
+  leads.forEach(l => bounds.extend({ lat: l.lat, lng: l.lng }));
+  map.fitBounds(bounds, { padding: 60 });
+}
+
 async function runSearch() {
   const city = document.getElementById('cityIn').value.trim();
   if (!city) return;
@@ -797,6 +1058,10 @@ async function runSearch() {
     });
     expandedIds.clear();
     renderLeads();
+    // Pre-load Maps API in background so map tab is instant
+    loadMapsApi();
+    // If map tab is open, refresh it
+    if (document.getElementById('tab-map').classList.contains('active')) initMapView();
   } catch (err) {
     document.getElementById('leadsList').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Search failed</div><div class="empty-sub">${err.message}</div></div>`;
   } finally {

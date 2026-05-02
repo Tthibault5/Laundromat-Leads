@@ -1,7 +1,7 @@
 {
-  "outputDirectory": "public",
   "rewrites": [
     { "source": "/api/places", "destination": "/api/places.js" },
+    { "source": "/api/mapskey", "destination": "/api/mapskey.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     const places = (searchData.results || []).slice(0, 20);
 
     if (places.length === 0) {
-      return res.status(200).json({ leads: [], censusData });
+      return res.status(200).json({ leads: [], censusData, mapsKey: apiKey });
     }
 
     // Step 5: Get details for each place
@@ -90,7 +90,7 @@ export default async function handler(req, res) {
     );
 
     const validLeads = leads.filter(Boolean);
-    return res.status(200).json({ leads: validLeads, total: validLeads.length });
+    return res.status(200).json({ leads: validLeads, total: validLeads.length, mapsKey: apiKey });
 
   } catch (err) {
     console.error('Places API error:', err);

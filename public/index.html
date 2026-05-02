@@ -867,14 +867,26 @@ let activeMarkerIndex = null;
 let mapsApiLoaded = false;
 let sharedInfoWindow = null;
 
-function loadMapsApi() {
-  if (mapsApiLoaded || document.getElementById('gmaps-script')) return;
+async function loadMapsApi() {
+  if (mapsApiLoaded) return;
+  if (window._mapsReady) return;
   mapsApiLoaded = true;
-  const script = document.createElement('script');
-  script.id = 'gmaps-script';
-  script.src = '/api/mapskey';
-  script.async = true;
-  document.head.appendChild(script);
+  try {
+    // Fetch the key from our server-side endpoint
+    const res = await fetch('/api/mapskey');
+    const data = await res.json();
+    if (!data.key) throw new Error('No key returned');
+    // Build the script tag directly with the key — avoids redirect callback issues
+    const script = document.createElement('script');
+    script.id = 'gmaps-script';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${data.key}&callback=initMap&libraries=geometry&loading=async`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  } catch(e) {
+    console.error('Failed to load Maps API:', e);
+    mapsApiLoaded = false;
+  }
 }
 
 function initMapView() {
@@ -882,14 +894,25 @@ function initMapView() {
     document.getElementById('mapSubtitle').textContent = 'Search for leads first to see them on the map';
     return;
   }
-  loadMapsApi();
-  // If API already ready, render immediately
+  // Show loading spinner immediately
+  document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
+
   if (window._mapsReady) {
     renderMap();
   } else {
-    // Show loading state while API loads
-    document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
     window._mapsReadyCb = renderMap;
+    loadMapsApi();
+    // Fallback poll — in case callback fires before our listener is set
+    let attempts = 0;
+    const poll = setInterval(() => {
+      attempts++;
+      if (window._mapsReady || typeof google !== 'undefined') {
+        clearInterval(poll);
+        window._mapsReady = true;
+        renderMap();
+      }
+      if (attempts > 30) clearInterval(poll); // stop after 15s
+    }, 500);
   }
 }
 

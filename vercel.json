@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/api/places", "destination": "/api/places.js" },
     { "source": "/api/mapskey", "destination": "/api/mapskey.js" },
+    { "source": "/api/crm", "destination": "/api/crm.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -1697,13 +1697,23 @@ function printSingleMailer(letterNum, leadId) {
     .replace(/\{business_name\}/g, lead.name || 'your business')
     .replace(/\{business_address\}/g, lead.address || '')
     .replace(/\{city\}/g, city);
+  const safeBody = body.replace(/\n/g, '<br>');
   const printWin = window.open('', '_blank', 'width=900,height=700');
-  printWin.document.write('<!DOCTYPE html><html><head><title></title><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { background: white; font-family: Georgia, serif; } @page { margin: 0; size: letter; }</style></head><body><div style="padding:72px 80px;color:#1a1a1a"><div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">' + today + '<br>180 Heath Street, Unit 1, Jamaica Plain, MA 02130<br>Email: Tthibault5@outlook.com &middot; Phone: (203) 461-5119</div><div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">' + lead.name + '<br>' + (lead.address || '') + '</div><div style="font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap">' + body + '
-
-Tommy Thibault</div></div></body></html>');
+  const html = '<!DOCTYPE html><html><head><title></title>'
+    + '<style>* {box-sizing:border-box;margin:0;padding:0;} body {background:white;font-family:Georgia,serif;} @page {margin:0;size:letter;}</style>'
+    + '</head><body><div style="padding:72px 80px;color:#1a1a1a">'
+    + '<div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">'
+    + today + '<br>180 Heath Street, Unit 1, Jamaica Plain, MA 02130<br>'
+    + 'Email: Tthibault5@outlook.com &middot; Phone: (203) 461-5119</div>'
+    + '<div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">'
+    + (lead.name || '') + '<br>' + (lead.address || '') + '</div>'
+    + '<div style="font-size:13px;line-height:1.9;color:#333">'
+    + safeBody + '<br><br>Tommy Thibault'
+    + '</div></div></body></html>';
+  printWin.document.write(html);
   printWin.document.close();
   printWin.focus();
-  setTimeout(() => { printWin.print(); printWin.close(); }, 400);
+  setTimeout(function() { printWin.print(); printWin.close(); }, 400);
 }
 
 document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });

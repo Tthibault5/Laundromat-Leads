@@ -202,6 +202,70 @@
 
   /* INFO WINDOW custom styles injected via JS */
 
+
+  /* CRM */
+  .crm-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
+  .crm-lead-list { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); max-height: 80vh; overflow-y: auto; }
+  .crm-lead-item { padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+  .crm-lead-item:last-child { border-bottom: none; }
+  .crm-lead-item:hover { background: var(--bg3); }
+  .crm-lead-item.active { background: rgba(232,255,71,0.07); border-left: 3px solid var(--accent); }
+  .crm-lead-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+  .crm-lead-meta { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; margin-bottom: 5px; }
+  .crm-status-badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-family: 'DM Mono', monospace; }
+  .crm-due { color: var(--amber); font-size: 10px; font-family: 'DM Mono', monospace; margin-top: 3px; }
+  .crm-overdue { color: var(--red); font-size: 10px; font-family: 'DM Mono', monospace; margin-top: 3px; }
+
+  .crm-detail { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+  .crm-detail-name { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .crm-detail-addr { font-size: 13px; color: var(--text2); font-family: 'DM Mono', monospace; margin-bottom: 16px; }
+  .crm-scores { display: flex; gap: 8px; margin-bottom: 20px; }
+  .crm-score-chip { border-radius: 8px; padding: 8px 14px; text-align: center; min-width: 70px; }
+  .crm-score-num { font-size: 22px; font-weight: 600; font-family: 'DM Mono', monospace; line-height: 1; }
+  .crm-score-lbl { font-size: 10px; color: var(--text2); margin-top: 2px; }
+
+  .crm-section { margin-bottom: 24px; }
+  .crm-section-title { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .crm-timeline { display: flex; flex-direction: column; gap: 8px; }
+  .crm-timeline-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .crm-timeline-left { flex: 1; }
+  .crm-timeline-type { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+  .crm-timeline-date { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; }
+  .crm-timeline-notes { font-size: 11px; color: var(--text2); margin-top: 4px; }
+  .crm-next-due { background: rgba(255,179,71,0.08); border: 1px solid rgba(255,179,71,0.2); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--amber); margin-bottom: 8px; }
+  .crm-next-overdue { background: rgba(255,79,79,0.08); border: 1px solid rgba(255,79,79,0.2); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--red); margin-bottom: 8px; }
+
+  .crm-form { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 10px; }
+  .crm-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+  .crm-form-row.full { grid-template-columns: 1fr; }
+  .crm-form label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px; }
+  .crm-form input, .crm-form select, .crm-form textarea { background: var(--bg2); border: 1px solid var(--border2); border-radius: 6px; padding: 7px 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 12px; outline: none; width: 100%; transition: border-color 0.15s; }
+  .crm-form input:focus, .crm-form select:focus, .crm-form textarea:focus { border-color: var(--accent); }
+  .crm-form textarea { resize: vertical; min-height: 60px; }
+  .crm-form select option { background: var(--bg2); }
+  .crm-form-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-crm-add { background: var(--accent); color: #0f0f0f; border: none; border-radius: 6px; padding: 7px 16px; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-crm-add:hover { background: var(--accent2); }
+  .btn-crm-cancel { background: transparent; color: var(--text2); border: 1px solid var(--border2); border-radius: 6px; padding: 7px 16px; font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer; }
+  .btn-crm-small { background: transparent; color: var(--text3); border: 1px solid var(--border); border-radius: 5px; padding: 3px 8px; font-size: 10px; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .btn-crm-small:hover { color: var(--red); border-color: rgba(255,79,79,0.3); }
+  .btn-add-touch { background: transparent; color: var(--accent); border: 1px solid rgba(232,255,71,0.3); border-radius: 6px; padding: 5px 12px; font-size: 11px; cursor: pointer; font-family: 'DM Mono', monospace; }
+  .btn-add-touch:hover { background: rgba(232,255,71,0.07); }
+
+  .crm-response-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .sentiment-positive { color: var(--teal); }
+  .sentiment-negative { color: var(--red); }
+  .sentiment-neutral { color: var(--text2); }
+
+  .crm-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+  .crm-empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 13px; }
+
+  .letter-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .letter-tab { font-size: 11px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border2); background: transparent; cursor: pointer; color: var(--text2); font-family: 'DM Mono', monospace; }
+  .letter-tab.active { background: rgba(232,255,71,0.1); color: var(--accent); border-color: rgba(232,255,71,0.3); }
+
+  @media (max-width: 768px) { .crm-grid { grid-template-columns: 1fr; } .crm-summary { grid-template-columns: repeat(2,1fr); } }
+
   @media print {
     @page {
       margin: 0.75in;
@@ -266,6 +330,7 @@
     <button class="tab active" id="tab-search" onclick="switchTab('search')">🔍 Find Leads</button>
     <button class="tab" id="tab-saved" onclick="switchTab('saved')">📋 Saved Leads <span id="tabSavedCount" style="font-size:11px;color:var(--text3)"></span></button>
     <button class="tab" id="tab-map" onclick="switchTab('map')">🗺️ Map View</button>
+    <button class="tab" id="tab-crm" onclick="switchTab('crm')">📊 CRM</button>
   </div>
 
   <!-- SEARCH PAGE -->
@@ -427,6 +492,43 @@ Sincerely,</textarea>
     </div>
   </div>
 
+  <!-- CRM PAGE -->
+  <div class="page" id="page-crm">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-size:20px;font-weight:600;margin-bottom:4px">Campaign CRM</div>
+        <div style="font-size:13px;color:var(--text2)" id="crmSubtitle">Loading campaigns...</div>
+      </div>
+      <button class="btn-primary" style="font-size:12px;padding:8px 16px" onclick="refreshCRM()">↻ Refresh</button>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="crm-summary" id="crmSummary" style="display:none">
+      <div class="stat-card"><div class="stat-num" id="crm-s-total">0</div><div class="stat-lbl">total campaigns</div></div>
+      <div class="stat-card"><div class="stat-num" id="crm-s-due" style="color:var(--amber)">0</div><div class="stat-lbl">due for follow-up</div></div>
+      <div class="stat-card"><div class="stat-num" id="crm-s-overdue" style="color:var(--red)">0</div><div class="stat-lbl">overdue</div></div>
+      <div class="stat-card"><div class="stat-num" id="crm-s-responded" style="color:var(--teal)">0</div><div class="stat-lbl">responded</div></div>
+    </div>
+
+    <div class="crm-grid">
+      <!-- Lead list -->
+      <div>
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Campaigns</div>
+        <div class="crm-lead-list" id="crmLeadList">
+          <div class="crm-empty">No campaigns yet — save leads from Find Leads to start tracking outreach</div>
+        </div>
+      </div>
+      <!-- Detail panel -->
+      <div id="crmDetail">
+        <div class="crm-empty" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:60px 20px">
+          <div style="font-size:28px;margin-bottom:12px">📊</div>
+          <div style="color:var(--text2);font-size:14px;margin-bottom:6px">Select a campaign</div>
+          <div style="font-size:12px">Click any lead on the left to view and manage their outreach campaign</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- MAILER PREVIEW MODAL -->
@@ -463,6 +565,8 @@ function saveLeadData(lead) {
   const saved = getSaved();
   if (!saved.some(l => l.id === lead.id)) { saved.push(lead); setSaved(saved); }
   updateSavedUI();
+  // Also sync to Supabase for cross-device persistence and CRM
+  crmFetch('save_lead', lead).catch(e => console.warn('Supabase sync failed:', e.message));
 }
 function unsaveLead(id) {
   setSaved(getSaved().filter(l => l.id !== id));
@@ -486,12 +590,13 @@ function updateSavedUI() {
 }
 
 function switchTab(tab) {
-  ['search','saved','map'].forEach(t => {
+  ['search','saved','map','crm'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     document.getElementById('page-' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'saved') renderSaved();
   if (tab === 'map') initMapView();
+  if (tab === 'crm') initCRM();
 }
 
 // DISTRESS SCORE (0-100): rating + review signals + owner responsiveness
@@ -1139,6 +1244,466 @@ async function runSearch() {
   } finally {
     btn.disabled = false; btn.textContent = 'Find Leads';
   }
+}
+
+
+// ── CRM ─────────────────────────────────────────────────────────────
+let crmLeads = [];
+let activeCrmLeadId = null;
+let showTouchForm = false;
+let showResponseForm = false;
+let activeLetter = 1;
+
+const LETTER_TEMPLATES = {
+  1: {
+    label: 'Letter 1 — Introduction',
+    subject: 'A note about your laundromat',
+    body: `Hello {business_name},
+
+My name is Tommy Thibault. I am a small time investor in Connecticut looking to acquire and operate a laundromat in the area long-term.
+
+I came across your location and wanted to reach out directly. If you have ever considered selling, retiring, partnering, or stepping back from day-to-day operations, I would welcome a confidential conversation.
+
+I understand timing matters, and there is absolutely no pressure. If now is not the right time, I would still be glad to connect for the future.
+
+You can reach me directly at (203) 461-5119 or Tthibault5@outlook.com.
+
+Thank you for your time.
+
+Sincerely,`
+  },
+  2: {
+    label: 'Letter 2 — Follow Up',
+    subject: 'Following up — your laundromat',
+    body: `Hello {business_name},
+
+A few months ago I sent you a letter expressing my interest in your laundromat at {business_address}. I wanted to follow up in case that letter did not reach you, or if the timing simply was not right at the time.
+
+I am still actively looking to acquire and operate a laundromat in the {city} area, and your location remains of strong interest to me.
+
+Ownership transitions can feel overwhelming, but I aim to make any conversation as simple and pressure-free as possible. Whether you are thinking about selling now, in a year, or just want to understand your options, I am happy to talk.
+
+Please feel free to reach me at (203) 461-5119 or Tthibault5@outlook.com at your convenience.
+
+Thank you again for your time, and I wish you continued success.
+
+Sincerely,`
+  },
+  3: {
+    label: 'Letter 3 — Final Reach Out',
+    subject: 'One last note — your laundromat',
+    body: `Hello {business_name},
+
+This will be my final letter, and I want to keep it brief.
+
+Over the past several months I have reached out a couple of times regarding your laundromat at {business_address}. I remain genuinely interested and wanted to give you one last opportunity to connect before I focus my search elsewhere.
+
+If you have ever thought about what it might look like to transition out of the business — whether now or down the road — I would welcome even a five minute phone call.
+
+You can reach me anytime at (203) 461-5119 or Tthibault5@outlook.com.
+
+Thank you for your time over these past months. I wish you and your business all the best.
+
+Sincerely,`
+  }
+};
+
+const TOUCH_TYPES = [
+  { value: 'letter', label: '✉️ Letter' },
+  { value: 'email', label: '📧 Email' },
+  { value: 'phone', label: '📞 Phone call' },
+  { value: 'inperson', label: '🤝 In person' },
+];
+
+const SENTIMENTS = [
+  { value: 'positive', label: '✅ Positive — interested' },
+  { value: 'neutral', label: '➖ Neutral — not yet' },
+  { value: 'negative', label: '❌ Negative — not interested' },
+];
+
+async function crmFetch(action, body = null) {
+  const opts = { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`/api/crm?action=${action}`, opts);
+  if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'API error'); }
+  return res.json();
+}
+
+async function initCRM() {
+  document.getElementById('crmSubtitle').textContent = 'Loading...';
+  document.getElementById('crmSummary').style.display = 'none';
+  try {
+    await refreshCRM();
+  } catch(e) {
+    document.getElementById('crmSubtitle').textContent = 'Failed to load — ' + e.message;
+  }
+}
+
+async function refreshCRM() {
+  const data = await crmFetch('get_leads');
+  crmLeads = data.leads || [];
+  renderCRMList();
+  renderCRMSummary();
+  if (activeCrmLeadId) {
+    const lead = crmLeads.find(l => l.id === activeCrmLeadId);
+    if (lead) renderCRMDetail(lead);
+  }
+}
+
+function getFollowUpStatus(lead) {
+  const touches = lead.touchpoints || [];
+  const responses = lead.responses || [];
+  if (responses.length > 0) return { status: 'responded', label: 'Responded', color: '#43A047' };
+  if (touches.length === 0) return { status: 'none', label: 'Not contacted', color: '#9E9E9E' };
+
+  const sorted = [...touches].sort((a, b) => new Date(b.sent_date) - new Date(a.sent_date));
+  const lastTouch = sorted[0];
+  const lastDate = new Date(lastTouch.sent_date);
+  const today = new Date();
+  const daysSince = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
+  const touchNum = Math.max(...touches.map(t => t.touch_number));
+
+  if (touchNum >= 3) return { status: 'done', label: 'All 3 sent', color: '#607D8B' };
+
+  // Follow-up windows: 90 days after touch 1, 180 days after touch 2
+  const waitDays = touchNum === 1 ? 90 : 180;
+  const daysUntilDue = waitDays - daysSince;
+
+  if (daysUntilDue < 0) return { status: 'overdue', label: `Overdue by ${Math.abs(daysUntilDue)}d`, color: '#ff4f4f', daysUntilDue };
+  if (daysUntilDue <= 14) return { status: 'due-soon', label: `Due in ${daysUntilDue}d`, color: '#ffb347', daysUntilDue };
+  return { status: 'waiting', label: `Next in ${daysUntilDue}d`, color: '#9E9E9E', daysUntilDue };
+}
+
+function renderCRMSummary() {
+  const total = crmLeads.length;
+  let due = 0, overdue = 0, responded = 0;
+  crmLeads.forEach(l => {
+    const s = getFollowUpStatus(l);
+    if (s.status === 'due-soon') due++;
+    if (s.status === 'overdue') overdue++;
+    if (s.status === 'responded') responded++;
+  });
+  document.getElementById('crm-s-total').textContent = total;
+  document.getElementById('crm-s-due').textContent = due;
+  document.getElementById('crm-s-overdue').textContent = overdue;
+  document.getElementById('crm-s-responded').textContent = responded;
+  document.getElementById('crmSummary').style.display = total > 0 ? 'grid' : 'none';
+  document.getElementById('crmSubtitle').textContent = total > 0
+    ? `${total} campaign${total !== 1 ? 's' : ''} · ${overdue} overdue · ${due} due soon · ${responded} responded`
+    : 'No campaigns yet — save leads from Find Leads to start tracking';
+}
+
+function renderCRMList() {
+  const el = document.getElementById('crmLeadList');
+  if (!crmLeads.length) {
+    el.innerHTML = '<div class="crm-empty">No campaigns yet.<br>Save leads from Find Leads tab to begin.</div>';
+    return;
+  }
+
+  // Sort: overdue first, then due-soon, then waiting, then responded/done
+  const order = { overdue: 0, 'due-soon': 1, none: 2, waiting: 3, responded: 4, done: 5 };
+  const sorted = [...crmLeads].sort((a, b) => {
+    const sa = getFollowUpStatus(a), sb = getFollowUpStatus(b);
+    return (order[sa.status] ?? 3) - (order[sb.status] ?? 3);
+  });
+
+  el.innerHTML = sorted.map(lead => {
+    const fs = getFollowUpStatus(lead);
+    const touches = lead.touchpoints || [];
+    const isActive = lead.id === activeCrmLeadId;
+    const touchCount = touches.length;
+    return `<div class="crm-lead-item ${isActive ? 'active' : ''}" onclick="selectCRMLead('${lead.id}')">
+      <div class="crm-lead-name">${lead.name}</div>
+      <div class="crm-lead-meta">${(lead.address || '').replace(', USA', '')}</div>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span class="crm-status-badge" style="background:${fs.color}22;color:${fs.color};border:1px solid ${fs.color}44">${fs.label}</span>
+        <span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${touchCount} touch${touchCount !== 1 ? 'es' : ''}</span>
+        ${lead.responses?.length ? `<span style="font-size:10px;color:var(--teal);font-family:'DM Mono',monospace">💬 ${lead.responses.length} response</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectCRMLead(id) {
+  activeCrmLeadId = id;
+  showTouchForm = false;
+  showResponseForm = false;
+  const lead = crmLeads.find(l => l.id === id);
+  if (lead) {
+    renderCRMList();
+    renderCRMDetail(lead);
+  }
+}
+
+function renderCRMDetail(lead) {
+  const el = document.getElementById('crmDetail');
+  const fs = getFollowUpStatus(lead);
+  const touches = [...(lead.touchpoints || [])].sort((a, b) => new Date(a.sent_date) - new Date(b.sent_date));
+  const responses = [...(lead.responses || [])].sort((a, b) => new Date(b.response_date) - new Date(a.response_date));
+  const nextTouchNum = (Math.max(0, ...touches.map(t => t.touch_number)) + 1);
+
+  // Follow-up reminder banner
+  let reminderHtml = '';
+  if (fs.status === 'overdue') {
+    reminderHtml = `<div class="crm-next-overdue">⚠️ Overdue — Letter ${nextTouchNum <= 3 ? nextTouchNum : ''} was due ${Math.abs(fs.daysUntilDue)} days ago. Time to follow up!</div>`;
+  } else if (fs.status === 'due-soon') {
+    reminderHtml = `<div class="crm-next-due">🔔 Follow-up due in ${fs.daysUntilDue} days — Letter ${nextTouchNum <= 3 ? nextTouchNum : ''} coming up soon.</div>`;
+  } else if (fs.status === 'none') {
+    reminderHtml = `<div class="crm-next-due">📬 No outreach yet — ready to send Letter 1.</div>`;
+  }
+
+  // Timeline HTML
+  const touchHtml = touches.length ? touches.map(t => {
+    const typeLabel = TOUCH_TYPES.find(x => x.value === t.contact_type)?.label || t.contact_type;
+    const letterLabel = t.letter_template ? ` · Letter ${t.letter_template}` : '';
+    return `<div class="crm-timeline-item">
+      <div class="crm-timeline-left">
+        <div class="crm-timeline-type">${typeLabel}${letterLabel} <span style="color:var(--text3)">— Touch #${t.touch_number}</span></div>
+        <div class="crm-timeline-date">${new Date(t.sent_date).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })}</div>
+        ${t.notes ? `<div class="crm-timeline-notes">${t.notes}</div>` : ''}
+      </div>
+      <button class="btn-crm-small" onclick="deleteTouchpoint('${t.id}')">✕</button>
+    </div>`;
+  }).join('') : '<div style="font-size:12px;color:var(--text3);padding:4px 0">No touchpoints yet</div>';
+
+  // Response HTML
+  const responseHtml = responses.length ? responses.map(r => {
+    const sentimentClass = r.sentiment === 'positive' ? 'sentiment-positive' : r.sentiment === 'negative' ? 'sentiment-negative' : 'sentiment-neutral';
+    const sentimentLabel = SENTIMENTS.find(s => s.value === r.sentiment)?.label || r.sentiment;
+    return `<div class="crm-response-item">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:500;margin-bottom:2px" class="${sentimentClass}">${sentimentLabel}</div>
+        <div style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace">${new Date(r.response_date).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' })} · ${r.responder || 'Owner'}</div>
+        ${r.notes ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">${r.notes}</div>` : ''}
+      </div>
+      <button class="btn-crm-small" onclick="deleteResponse('${r.id}')">✕</button>
+    </div>`;
+  }).join('') : '<div style="font-size:12px;color:var(--text3);padding:4px 0">No responses recorded</div>';
+
+  // Touch form
+  const touchFormHtml = showTouchForm ? `
+    <div class="crm-form">
+      <div class="crm-form-row">
+        <div><label>Contact type</label>
+          <select id="tf-type">
+            ${TOUCH_TYPES.map(t => `<option value="${t.value}">${t.label}</option>`).join('')}
+          </select>
+        </div>
+        <div><label>Date sent</label>
+          <input type="date" id="tf-date" value="${new Date().toISOString().split('T')[0]}" />
+        </div>
+      </div>
+      <div class="crm-form-row">
+        <div><label>Touch number</label>
+          <select id="tf-num">
+            <option value="1" ${nextTouchNum===1?'selected':''}>1st touch</option>
+            <option value="2" ${nextTouchNum===2?'selected':''}>2nd touch</option>
+            <option value="3" ${nextTouchNum===3?'selected':''}>3rd touch</option>
+          </select>
+        </div>
+        <div><label>Letter template used</label>
+          <select id="tf-letter">
+            <option value="">None / other</option>
+            <option value="1">Letter 1 — Introduction</option>
+            <option value="2">Letter 2 — Follow Up</option>
+            <option value="3">Letter 3 — Final</option>
+          </select>
+        </div>
+      </div>
+      <div class="crm-form-row full">
+        <div><label>Notes (optional)</label>
+          <textarea id="tf-notes" placeholder="Any notes about this touchpoint..."></textarea>
+        </div>
+      </div>
+      <div class="crm-form-actions">
+        <button class="btn-crm-add" onclick="saveTouchpoint('${lead.id}')">Save touchpoint</button>
+        <button class="btn-crm-cancel" onclick="showTouchForm=false;renderCRMDetail(crmLeads.find(l=>l.id==='${lead.id}'))">Cancel</button>
+      </div>
+    </div>` : '';
+
+  // Response form
+  const responseFormHtml = showResponseForm ? `
+    <div class="crm-form">
+      <div class="crm-form-row">
+        <div><label>Response date</label>
+          <input type="date" id="rf-date" value="${new Date().toISOString().split('T')[0]}" />
+        </div>
+        <div><label>Who responded</label>
+          <select id="rf-responder">
+            <option value="Owner">Owner</option>
+            <option value="Landlord">Landlord</option>
+            <option value="Manager">Manager</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="crm-form-row full">
+        <div><label>Sentiment</label>
+          <select id="rf-sentiment">
+            ${SENTIMENTS.map(s => `<option value="${s.value}">${s.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="crm-form-row full">
+        <div><label>Notes</label>
+          <textarea id="rf-notes" placeholder="What did they say?"></textarea>
+        </div>
+      </div>
+      <div class="crm-form-actions">
+        <button class="btn-crm-add" onclick="saveResponse('${lead.id}')">Save response</button>
+        <button class="btn-crm-cancel" onclick="showResponseForm=false;renderCRMDetail(crmLeads.find(l=>l.id==='${lead.id}'))">Cancel</button>
+      </div>
+    </div>` : '';
+
+  // Letter preview tabs
+  const letterTabsHtml = `
+    <div class="letter-tabs">
+      ${[1,2,3].map(n => `<button class="letter-tab ${activeLetter===n?'active':''}" onclick="activeLetter=${n};renderCRMDetail(crmLeads.find(l=>l.id==='${lead.id}'))">Letter ${n}</button>`).join('')}
+    </div>`;
+
+  const tpl = LETTER_TEMPLATES[activeLetter];
+  const cityMatch = (lead.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
+  const city = cityMatch ? cityMatch[1].trim() : 'your area';
+  const previewBody = tpl.body
+    .replace(/\{business_name\}/g, lead.name || 'your business')
+    .replace(/\{business_address\}/g, lead.address || '')
+    .replace(/\{city\}/g, city);
+
+  el.innerHTML = `
+    <div class="crm-detail">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div class="crm-detail-name">${lead.name}</div>
+        <button class="btn-crm-small" style="color:var(--red);border-color:rgba(255,79,79,0.3);font-size:11px;padding:4px 10px" onclick="removeCRMLead('${lead.id}')">Remove from CRM</button>
+      </div>
+      <div class="crm-detail-addr">${lead.address || ''} ${lead.phone ? '· ' + lead.phone : ''}</div>
+      <div class="crm-scores">
+        <div class="crm-score-chip" style="background:rgba(230,81,0,0.12)">
+          <div class="crm-score-num" style="color:#e65100">${lead.desirability_score}</div>
+          <div class="crm-score-lbl">desirability</div>
+        </div>
+        <div class="crm-score-chip" style="background:rgba(255,79,79,0.1)">
+          <div class="crm-score-num" style="color:var(--red)">${lead.distress_score}</div>
+          <div class="crm-score-lbl">distress</div>
+        </div>
+        <div class="crm-score-chip" style="background:rgba(63,255,192,0.08)">
+          <div class="crm-score-num" style="color:var(--teal)">${lead.density_score}</div>
+          <div class="crm-score-lbl">density</div>
+        </div>
+        <div class="crm-score-chip" style="background:rgba(255,255,255,0.04)">
+          <div class="crm-score-num" style="color:var(--text2)">${lead.rating ? parseFloat(lead.rating).toFixed(1) : 'N/A'}</div>
+          <div class="crm-score-lbl">rating</div>
+        </div>
+      </div>
+
+      ${reminderHtml}
+
+      <!-- OUTREACH TIMELINE -->
+      <div class="crm-section">
+        <div class="crm-section-title">
+          <span>Outreach Timeline</span>
+          <button class="btn-add-touch" onclick="showTouchForm=!showTouchForm;showResponseForm=false;renderCRMDetail(crmLeads.find(l=>l.id==='${lead.id}'))">+ Log touchpoint</button>
+        </div>
+        ${touchFormHtml}
+        <div class="crm-timeline">${touchHtml}</div>
+      </div>
+
+      <!-- RESPONSES -->
+      <div class="crm-section">
+        <div class="crm-section-title">
+          <span>Responses</span>
+          <button class="btn-add-touch" onclick="showResponseForm=!showResponseForm;showTouchForm=false;renderCRMDetail(crmLeads.find(l=>l.id==='${lead.id}'))">+ Log response</button>
+        </div>
+        ${responseFormHtml}
+        ${responseHtml}
+      </div>
+
+      <!-- LETTER TEMPLATES -->
+      <div class="crm-section">
+        <div class="crm-section-title"><span>Letter Templates</span></div>
+        ${letterTabsHtml}
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px 20px;font-family:Georgia,serif;font-size:13px;color:#ccc;line-height:1.8;white-space:pre-wrap">${previewBody}
+
+Tommy Thibault</div>
+        <button class="btn-add-touch" style="margin-top:8px" onclick="printSingleMailer(${activeLetter}, '${lead.id}')">🖨️ Print this letter</button>
+      </div>
+    </div>`;
+}
+
+async function saveTouchpoint(leadId) {
+  const type = document.getElementById('tf-type').value;
+  const date = document.getElementById('tf-date').value;
+  const num = parseInt(document.getElementById('tf-num').value);
+  const letter = document.getElementById('tf-letter').value;
+  const notes = document.getElementById('tf-notes').value;
+  if (!date) return alert('Please select a date');
+  try {
+    await crmFetch('add_touchpoint', { lead_id: leadId, touch_number: num, contact_type: type, sent_date: date, letter_template: letter ? parseInt(letter) : null, notes });
+    showTouchForm = false;
+    await refreshCRM();
+    selectCRMLead(leadId);
+  } catch(e) { alert('Error saving: ' + e.message); }
+}
+
+async function saveResponse(leadId) {
+  const date = document.getElementById('rf-date').value;
+  const responder = document.getElementById('rf-responder').value;
+  const sentiment = document.getElementById('rf-sentiment').value;
+  const notes = document.getElementById('rf-notes').value;
+  if (!date) return alert('Please select a date');
+  try {
+    await crmFetch('add_response', { lead_id: leadId, response_date: date, responder, sentiment, notes });
+    showResponseForm = false;
+    await refreshCRM();
+    selectCRMLead(leadId);
+  } catch(e) { alert('Error saving: ' + e.message); }
+}
+
+async function deleteTouchpoint(id) {
+  if (!confirm('Delete this touchpoint?')) return;
+  try {
+    await crmFetch('delete_touchpoint', { id });
+    await refreshCRM();
+    if (activeCrmLeadId) selectCRMLead(activeCrmLeadId);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function deleteResponse(id) {
+  if (!confirm('Delete this response?')) return;
+  try {
+    await crmFetch('delete_response', { id });
+    await refreshCRM();
+    if (activeCrmLeadId) selectCRMLead(activeCrmLeadId);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function removeCRMLead(leadId) {
+  if (!confirm('Remove this lead from CRM? All touchpoints and responses will be deleted.')) return;
+  try {
+    await crmFetch('delete_lead', { lead_id: leadId });
+    activeCrmLeadId = null;
+    document.getElementById('crmDetail').innerHTML = '<div class="crm-empty" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:60px 20px"><div style="font-size:28px;margin-bottom:12px">📊</div><div style="color:var(--text2);font-size:14px">Lead removed</div></div>';
+    await refreshCRM();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function printSingleMailer(letterNum, leadId) {
+  const lead = crmLeads.find(l => l.id === leadId);
+  if (!lead) return;
+  const tpl = LETTER_TEMPLATES[letterNum];
+  const cityMatch = (lead.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
+  const city = cityMatch ? cityMatch[1].trim() : 'your area';
+  const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const body = tpl.body
+    .replace(/\{business_name\}/g, lead.name || 'your business')
+    .replace(/\{business_address\}/g, lead.address || '')
+    .replace(/\{city\}/g, city);
+  const printWin = window.open('', '_blank', 'width=900,height=700');
+  printWin.document.write('<!DOCTYPE html><html><head><title></title><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { background: white; font-family: Georgia, serif; } @page { margin: 0; size: letter; }</style></head><body><div style="padding:72px 80px;color:#1a1a1a"><div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">' + today + '<br>180 Heath Street, Unit 1, Jamaica Plain, MA 02130<br>Email: Tthibault5@outlook.com &middot; Phone: (203) 461-5119</div><div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">' + lead.name + '<br>' + (lead.address || '') + '</div><div style="font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap">' + body + '
+
+Tommy Thibault</div></div></body></html>');
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); printWin.close(); }, 400);
 }
 
 document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });

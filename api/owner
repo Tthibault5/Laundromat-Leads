@@ -1,0 +1,133 @@
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const { address, name, state } = req.query;
+  if (!address) return res.status(400).json({ error: 'Address is required' });
+
+  try {
+    const results = [];
+
+    // Parse address into components
+    const addressParts = address.split(',').map(p => p.trim());
+    const streetAddress = addressParts[0] || '';
+    const city = addressParts[1] || '';
+    const stateZip = addressParts[2] || '';
+    const stateCode = stateZip.trim().split(' ')[0] || state || 'CT';
+
+    // ── METHOD 1: OpenCorporates search by company name + jurisdiction ──
+    if (name) {
+      const cleanName = name.replace(/laundromat|laundry|coin|wash|dry|cleaners/gi, '').trim();
+      const jurisdiction = stateCode.toLowerCase();
+      
+      // Search by name in the state jurisdiction
+      const nameSearchUrl = `https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(cleanName)}&jurisdiction_code=us_${jurisdiction}&per_page=5`;
+      
+      try {
+        const nameRes = await fetch(nameSearchUrl, {
+          headers: { 'User-Agent': 'LaundroLeadFinder/1.0' }
+        });
+        if (nameRes.ok) {
+          const nameData = await nameRes.json();
+          const companies = nameData?.results?.companies || [];
+          companies.forEach(c => {
+            const company = c.company;
+            if (company) {
+              results.push({
+                source: 'opencorporates_name',
+                llcName: company.name,
+                jurisdiction: company.jurisdiction_code,
+                companyNumber: company.company_number,
+                incorporationDate: company.incorporation_date,
+                status: company.current_status,
+                registeredAddress: company.registered_address_in_full || null,
+                agent: null,
+                opencorporatesUrl: company.opencorporates_url,
+                confidence: 'medium',
+              });
+            }
+          });
+        }
+      } catch(e) { console.warn('Name search failed:', e.message); }
+    }
+
+    // ── METHOD 2: OpenCorporates search by street address ──
+    try {
+      const addrSearchUrl = `https://api.opencorporates.com/v0.4/companies/search?q=${encodeURIComponent(streetAddress + ' ' + city)}&jurisdiction_code=us_${stateCode.toLowerCase()}&per_page=5`;
+      const addrRes = await fetch(addrSearchUrl, {
+        headers: { 'User-Agent': 'LaundroLeadFinder/1.0' }
+      });
+      if (addrRes.ok) {
+        const addrData = await addrRes.json();
+        const companies = addrData?.results?.companies || [];
+        companies.forEach(c => {
+          const company = c.company;
+          if (company && !results.some(r => r.companyNumber === company.company_number)) {
+            results.push({
+              source: 'opencorporates_address',
+              llcName: company.name,
+              jurisdiction: company.jurisdiction_code,
+              companyNumber: company.company_number,
+              incorporationDate: company.incorporation_date,
+              status: company.current_status,
+              registeredAddress: company.registered_address_in_full || null,
+              agent: null,
+              opencorporatesUrl: company.opencorporates_url,
+              confidence: 'medium',
+            });
+          }
+        });
+      }
+    } catch(e) { console.warn('Address search failed:', e.message); }
+
+    // ── METHOD 3: CT SOTS direct search (for Connecticut addresses) ──
+    if (stateCode.toUpperCase() === 'CT') {
+      results.push({
+        source: 'ct_sots',
+        llcName: null,
+        jurisdiction: 'us_ct',
+        registryUrl: `https://www.concord-sots.ct.gov/CONCORD/online?sn=PublicInquiry&eid=9740`,
+        searchTip: `Search by business address: "${streetAddress}" in the CT SOTS registry`,
+        confidence: 'manual',
+      });
+    }
+
+    // ── METHOD 4: Generate smart Google search strings ──
+    const googleSearches = [
+      {
+        label: 'LLC by address',
+        url: `https://www.google.com/search?q=${encodeURIComponent('"' + streetAddress + '" "' + city + '" LLC OR "limited liability"')}`,
+      },
+      {
+        label: 'Owner name search',
+        url: `https://www.google.com/search?q=${encodeURIComponent((name || '') + ' "' + city + '" owner OR LLC OR registered agent')}`,
+      },
+      {
+        label: 'CT SOTS address search',
+        url: `https://www.google.com/search?q=${encodeURIComponent('site:concord-sots.ct.gov "' + streetAddress + '"')}`,
+      },
+    ];
+
+    // Calculate ownership duration for any results with incorporation date
+    const enriched = results.map(r => {
+      if (r.incorporationDate) {
+        const years = Math.floor((new Date() - new Date(r.incorporationDate)) / (1000 * 60 * 60 * 24 * 365));
+        return { ...r, ownershipYears: years, ownershipLabel: years >= 20 ? '20+ years — strong distress signal' : years >= 10 ? `${years} years` : `${years} years` };
+      }
+      return r;
+    });
+
+    return res.status(200).json({
+      results: enriched,
+      googleSearches,
+      searchedAddress: address,
+      searchedName: name || null,
+    });
+
+  } catch (err) {
+    console.error('Owner lookup error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}

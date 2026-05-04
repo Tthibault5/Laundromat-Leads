@@ -4,8 +4,12 @@ function getSupabase() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error('Supabase credentials not configured. Check SUPABASE_URL and SUPABASE_ANON_KEY in Vercel environment variables.');
-  if (!url.startsWith('https://')) throw new Error('SUPABASE_URL must start with https://');
-  return createClient(url, key);
+  // Trim any accidental whitespace or trailing slashes
+  const cleanUrl = url.trim().replace(/\/$/, '');
+  const cleanKey = key.trim();
+  return createClient(cleanUrl, cleanKey, {
+    auth: { persistSession: false }
+  });
 }
 
 export default async function handler(req, res) {
@@ -24,7 +28,6 @@ export default async function handler(req, res) {
   const { action } = req.query;
 
   try {
-    // ── LEADS ──────────────────────────────────────────────────────
     if (action === 'get_leads') {
       const { data, error } = await supabase
         .from('leads')
@@ -70,7 +73,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── TOUCHPOINTS ────────────────────────────────────────────────
     if (action === 'add_touchpoint') {
       const { lead_id, touch_number, contact_type, sent_date, letter_template, notes } = req.body;
       const { error } = await supabase
@@ -87,7 +89,6 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // ── RESPONSES ──────────────────────────────────────────────────
     if (action === 'add_response') {
       const { lead_id, response_date, responder, sentiment, notes } = req.body;
       const { error } = await supabase

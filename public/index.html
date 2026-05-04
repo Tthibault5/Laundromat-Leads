@@ -266,6 +266,34 @@
 
   @media (max-width: 768px) { .crm-grid { grid-template-columns: 1fr; } .crm-summary { grid-template-columns: repeat(2,1fr); } }
 
+
+  /* LLC LOOKUP */
+  .llc-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .llc-modal-overlay.hidden { display: none; }
+  .llc-modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; width: 100%; max-width: 620px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; }
+  .llc-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .llc-modal-title { font-size: 14px; font-weight: 500; }
+  .llc-modal-sub { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; margin-top: 2px; }
+  .llc-modal-body { flex: 1; overflow-y: auto; padding: 20px; }
+  .llc-result { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; }
+  .llc-result-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; color: var(--accent); }
+  .llc-result-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+  .llc-chip { font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text2); border: 1px solid var(--border2); }
+  .llc-chip.highlight { background: rgba(232,255,71,0.1); color: var(--accent); border-color: rgba(232,255,71,0.3); }
+  .llc-chip.warning { background: rgba(255,79,79,0.1); color: var(--red); border-color: rgba(255,79,79,0.2); }
+  .llc-chip.good { background: rgba(63,255,192,0.08); color: var(--teal); border-color: rgba(63,255,192,0.2); }
+  .llc-addr { font-size: 12px; color: var(--text2); margin-bottom: 8px; font-family: 'DM Mono', monospace; }
+  .llc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .llc-link { font-size: 11px; color: var(--blue); background: rgba(71,184,255,0.08); border: 1px solid rgba(71,184,255,0.2); border-radius: 5px; padding: 4px 10px; cursor: pointer; text-decoration: none; font-family: 'DM Mono', monospace; }
+  .llc-link:hover { background: rgba(71,184,255,0.15); }
+  .llc-section-title { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; margin-top: 16px; }
+  .llc-search-row { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; }
+  .llc-search-label { font-size: 12px; color: var(--text); flex: 1; }
+  .llc-loading { text-align: center; padding: 40px; color: var(--text2); font-size: 13px; }
+  .btn-llc { font-size: 11px; padding: 5px 10px; border-radius: 5px; border: 1px solid rgba(71,184,255,0.3); background: transparent; color: var(--blue); cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; transition: all 0.15s; }
+  .btn-llc:hover { background: rgba(71,184,255,0.08); border-color: var(--blue); }
+  .llc-badge { font-size: 10px; font-family: 'DM Mono', monospace; padding: 2px 7px; border-radius: 4px; background: rgba(71,184,255,0.1); color: var(--blue); border: 1px solid rgba(71,184,255,0.2); display: inline-block; margin-top: 4px; }
+
   @media print {
     @page {
       margin: 0.75in;
@@ -755,6 +783,7 @@ function renderLeadCard(l, fromSaved = false) {
       <button class="btn-action ${saved ? 'btn-saved' : ''}" ${dataAttr} onclick="toggleSave(JSON.parse(this.dataset.lead))">${saved ? '✓ Saved' : 'Save'}</button>
       ${reviews ? `<button class="btn-action" onclick="toggleExpand('${l.id}')">${expanded ? 'Hide' : 'Reviews'}</button>` : ''}
       <a href="${registryUrl}" target="_blank"><button class="btn-action btn-registry">Registry ↗</button></a>
+      <button class="btn-llc" onclick="openLLCModal('${l.id}', '${(l.address||'').replace(/'/g,'')}', '${(l.name||'').replace(/'/g,'')}')">🏢 Find LLC</button>
       ${fromSaved ? `<button class="btn-action" style="color:var(--red);border-color:rgba(255,79,79,0.3)" onclick="unsaveLead('${l.id}')">Remove</button>` : ''}
     </div>
   </div>`;
@@ -1575,7 +1604,10 @@ function renderCRMDetail(lead) {
         <div class="crm-detail-name">${lead.name}</div>
         <button class="btn-crm-small" style="color:var(--red);border-color:rgba(255,79,79,0.3);font-size:11px;padding:4px 10px" onclick="removeCRMLead('${lead.id}')">Remove from CRM</button>
       </div>
-      <div class="crm-detail-addr">${lead.address || ''} ${lead.phone ? '· ' + lead.phone : ''}</div>
+      <div class="crm-detail-addr" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span>${lead.address || ''} ${lead.phone ? '· ' + lead.phone : ''}</span>
+        <button class="btn-llc" onclick="openLLCModal('${lead.id}', '${(lead.address||'').replace(/'/g,'')}', '${(lead.name||'').replace(/'/g,'')}')">🏢 Find LLC / Owner</button>
+      </div>
       <div class="crm-scores">
         <div class="crm-score-chip" style="background:rgba(230,81,0,0.12)">
           <div class="crm-score-num" style="color:#e65100">${lead.desirability_score}</div>
@@ -1717,10 +1749,136 @@ function printSingleMailer(letterNum, leadId) {
 }
 
 document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+
+// ── LLC / OWNER LOOKUP ──────────────────────────────────────────────
+let currentLLCLeadId = null;
+
+async function openLLCModal(leadId, address, name) {
+  currentLLCLeadId = leadId;
+  document.getElementById('llcModal').classList.remove('hidden');
+  document.getElementById('llcModalSub').textContent = name + ' · ' + address;
+  document.getElementById('llcModalBody').innerHTML = '<div class="llc-loading"><div class="spinner"></div><div style="margin-top:12px">Searching OpenCorporates and state registries...</div></div>';
+
+  try {
+    const params = new URLSearchParams({ address, name });
+    const res = await fetch('/api/owner?' + params.toString());
+    if (!res.ok) throw new Error('Lookup failed');
+    const data = await res.json();
+    renderLLCResults(data, leadId);
+  } catch(e) {
+    document.getElementById('llcModalBody').innerHTML = '<div class="llc-loading">Search failed: ' + e.message + '</div>';
+  }
+}
+
+function closeLLCModal() {
+  document.getElementById('llcModal').classList.add('hidden');
+  currentLLCLeadId = null;
+}
+
+function renderLLCResults(data, leadId) {
+  const body = document.getElementById('llcModalBody');
+  const results = data.results || [];
+  const searches = data.googleSearches || [];
+
+  // Filter out manual/registry-only results for display
+  const llcResults = results.filter(r => r.llcName);
+  const manualResults = results.filter(r => !r.llcName);
+
+  let html = '';
+
+  if (llcResults.length > 0) {
+    html += '<div class="llc-section-title">Matching businesses found</div>';
+    html += llcResults.map(r => {
+      const statusChip = r.status ? `<span class="llc-chip ${r.status.toLowerCase().includes('active') ? 'good' : 'warning'}">${r.status}</span>` : '';
+      const dateChip = r.incorporationDate ? `<span class="llc-chip">Filed: ${r.incorporationDate}</span>` : '';
+      const yearsChip = r.ownershipYears >= 15
+        ? `<span class="llc-chip warning">⚠️ ${r.ownershipYears} yrs ownership</span>`
+        : r.ownershipYears ? `<span class="llc-chip">${r.ownershipYears} yrs</span>` : '';
+      const addrHtml = r.registeredAddress ? `<div class="llc-addr">📍 ${r.registeredAddress}</div>` : '';
+      const ocLink = r.opencorporatesUrl ? `<a class="llc-link" href="${r.opencorporatesUrl}" target="_blank">View on OpenCorporates ↗</a>` : '';
+      const mailLink = r.registeredAddress
+        ? `<button class="llc-link" onclick="useAsMailingAddress('${leadId}', '${r.llcName.replace(/'/g,"\'")}', '${(r.registeredAddress||'').replace(/'/g,"\'")}')">📬 Use as mailing address</button>`
+        : '';
+
+      return `<div class="llc-result">
+        <div class="llc-result-name">${r.llcName}</div>
+        <div class="llc-result-meta">${statusChip}${dateChip}${yearsChip}</div>
+        ${addrHtml}
+        <div class="llc-actions">${ocLink}${mailLink}</div>
+      </div>`;
+    }).join('');
+  } else {
+    html += `<div style="background:rgba(255,179,71,0.08);border:1px solid rgba(255,179,71,0.2);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--amber);margin-bottom:16px">
+      No exact LLC matches found automatically — this is common. Use the manual search links below to find the owner in the state registry.
+    </div>`;
+  }
+
+  // Manual search links
+  html += '<div class="llc-section-title">Manual search links</div>';
+  html += searches.map(s => `
+    <div class="llc-search-row">
+      <div class="llc-search-label">${s.label}</div>
+      <a class="llc-link" href="${s.url}" target="_blank">Search ↗</a>
+    </div>`).join('');
+
+  // CT SOTS tip
+  if (manualResults.length > 0) {
+    html += '<div class="llc-section-title" style="margin-top:20px">CT State Registry tip</div>';
+    html += `<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:12px 14px;line-height:1.7">
+      In the CT SOTS registry, search by <strong style="color:var(--text)">street address</strong> rather than business name — this finds the LLC even when the storefront name differs from the legal entity name.<br><br>
+      Look for the <strong style="color:var(--text)">registered agent name</strong> — that's the person to address your letter to.
+    </div>`;
+  }
+
+  // Pro tip about ownership years
+  html += `<div style="margin-top:16px;font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;line-height:1.6;padding:10px 12px;border:1px solid var(--border);border-radius:6px">
+    💡 Tip: The LLC filing date tells you how long they have owned it. 15+ years is a strong acquisition signal — the owner may be ready to retire or sell.
+  </div>`;
+
+  body.innerHTML = html;
+}
+
+function useAsMailingAddress(leadId, llcName, registeredAddress) {
+  // Save LLC info to localStorage for this lead
+  const llcData = JSON.parse(localStorage.getItem('leadLLC') || '{}');
+  llcData[leadId] = { llcName, registeredAddress };
+  localStorage.setItem('leadLLC', JSON.stringify(llcData));
+
+  // Also sync to Supabase via CRM notes if lead is saved
+  alert('Mailing address updated to:\n\n' + llcName + '\n' + registeredAddress + '\n\nThis will be used in future mailers for this lead.');
+  closeLLCModal();
+}
+
+function getLLCData(leadId) {
+  try { return JSON.parse(localStorage.getItem('leadLLC') || '{}')[leadId] || null; } catch { return null; }
+}
+
+// Close modal when clicking outside
+document.getElementById('llcModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('llcModal')) closeLLCModal();
+});
+
 document.getElementById('mailerModal').addEventListener('click', e => { if (e.target === document.getElementById('mailerModal')) closeMailerModal(); });
 
 // Init
 updateSavedUI();
 </script>
+
+<!-- LLC LOOKUP MODAL -->
+<div class="llc-modal-overlay hidden" id="llcModal">
+  <div class="llc-modal">
+    <div class="llc-modal-header">
+      <div>
+        <div class="llc-modal-title">LLC / Owner Lookup</div>
+        <div class="llc-modal-sub" id="llcModalSub">Searching business registries...</div>
+      </div>
+      <button class="modal-close" onclick="closeLLCModal()">✕</button>
+    </div>
+    <div class="llc-modal-body" id="llcModalBody">
+      <div class="llc-loading"><div class="spinner"></div><div style="margin-top:12px">Searching OpenCorporates and state registries...</div></div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

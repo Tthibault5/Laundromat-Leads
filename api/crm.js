@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 function getSupabase() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_ANON_KEY;
-  if (!url || !key) throw new Error('Supabase credentials not configured');
+  if (!url || !key) throw new Error('Supabase credentials not configured. Check SUPABASE_URL and SUPABASE_ANON_KEY in Vercel environment variables.');
+  if (!url.startsWith('https://')) throw new Error('SUPABASE_URL must start with https://');
   return createClient(url, key);
 }
 
@@ -13,7 +14,13 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const supabase = getSupabase();
+  let supabase;
+  try {
+    supabase = getSupabase();
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+
   const { action } = req.query;
 
   try {
@@ -29,7 +36,7 @@ export default async function handler(req, res) {
 
     if (action === 'save_lead') {
       const lead = req.body;
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('leads')
         .upsert({
           id: lead.id,
@@ -66,11 +73,11 @@ export default async function handler(req, res) {
     // ── TOUCHPOINTS ────────────────────────────────────────────────
     if (action === 'add_touchpoint') {
       const { lead_id, touch_number, contact_type, sent_date, letter_template, notes } = req.body;
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('touchpoints')
         .insert({ lead_id, touch_number, contact_type, sent_date, letter_template: letter_template || null, notes: notes || null });
       if (error) throw error;
-      return res.status(200).json({ success: true, data });
+      return res.status(200).json({ success: true });
     }
 
     if (action === 'delete_touchpoint') {
@@ -83,11 +90,11 @@ export default async function handler(req, res) {
     // ── RESPONSES ──────────────────────────────────────────────────
     if (action === 'add_response') {
       const { lead_id, response_date, responder, sentiment, notes } = req.body;
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('responses')
         .insert({ lead_id, response_date, responder: responder || 'Owner', sentiment, notes: notes || null });
       if (error) throw error;
-      return res.status(200).json({ success: true, data });
+      return res.status(200).json({ success: true });
     }
 
     if (action === 'delete_response') {

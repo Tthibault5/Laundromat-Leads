@@ -1,12 +1,7 @@
 {
-  "functions": {
-    "api/places.js": { "memory": 1024, "maxDuration": 30 },
-    "api/crm.js": { "memory": 1024, "maxDuration": 30 },
-    "api/mapskey.js": { "memory": 512, "maxDuration": 10 },
-    "api/owner.js": { "memory": 1024, "maxDuration": 30 }
-  },
   "outputDirectory": "public",
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

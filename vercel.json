@@ -1,7 +1,10 @@
 {
   "outputDirectory": "public",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
+    { "source": "/api/places", "destination": "/api/places.js" },
+    { "source": "/api/crm", "destination": "/api/crm.js" },
+    { "source": "/api/mapskey", "destination": "/api/mapskey.js" },
+    { "source": "/api/owner", "destination": "/api/owner.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

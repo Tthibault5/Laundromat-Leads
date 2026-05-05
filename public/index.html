@@ -1762,11 +1762,17 @@ async function openLLCModal(leadId, address, name) {
   try {
     const params = new URLSearchParams({ address, name });
     const res = await fetch('/api/owner?' + params.toString());
-    if (!res.ok) throw new Error('Lookup failed');
-    const data = await res.json();
+    const text = await res.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch(parseErr) {
+      throw new Error('API returned unexpected response — check Vercel deployment logs. ' + text.slice(0, 100));
+    }
+    if (!res.ok) throw new Error(data.error || 'Lookup failed with status ' + res.status);
     renderLLCResults(data, leadId);
   } catch(e) {
-    document.getElementById('llcModalBody').innerHTML = '<div class="llc-loading">Search failed: ' + e.message + '</div>';
+    document.getElementById('llcModalBody').innerHTML = '<div class="llc-loading" style="color:var(--amber)">⚠️ ' + e.message + '</div>';
   }
 }
 

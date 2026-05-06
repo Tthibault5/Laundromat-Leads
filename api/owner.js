@@ -22,13 +22,17 @@ export default async function handler(req, res) {
     const streetNum = street.match(/^\d+/)?.[0] || '';
     const streetName = street.replace(/^\d+\s*/, '').trim();
 
-    // Strategy 1: Search OpenCorporates by street number + street name + city
+    // Strategy: name-only search is most reliable per user feedback
+    // Strip generic words to get the unique identifier (e.g. "Prospect Cleaners" not "Prospect Cleaners Laundromat")
+    const cleanName = name
+      ? name.replace(/(laundromat|laundry|coin laundry|coin wash|wash & dry|wash and dry|dry cleaners|cleaners)/gi, '').replace(/\s+/g, ' ').trim()
+      : null;
+
     const searches = [
-      streetNum && city ? streetNum + ' ' + streetName + ' ' + city : null,
-      streetNum && city ? streetNum + ' ' + city : null,
-      name ? name.replace(/laundromat|laundry|coin|wash|dry|cleaners/gi, '').trim() : null,
-      city + ' laundry',
-      city + ' coin laundry',
+      cleanName || null,                          // "Prospect" from "Prospect Cleaners Laundromat"
+      name || null,                               // full name as fallback
+      cleanName && city ? cleanName + ' ' + city : null, // name + city
+      streetNum && streetName ? streetNum + ' ' + streetName : null, // street address only
     ].filter(Boolean);
 
     for (const q of searches) {
@@ -54,27 +58,27 @@ export default async function handler(req, res) {
       } catch(e) { /* timeout or network error — skip */ }
     }
 
-    // Build smart search links
+    // Build smart search links — OpenCorporates name-only is most reliable
     const googleSearches = [
+      {
+        label: '⭐ OpenCorporates: name only search (most reliable)',
+        url: 'https://opencorporates.com/companies?q=' + encodeURIComponent(cleanName || name || street),
+      },
+      {
+        label: 'CT SOTS: State business registry',
+        url: 'https://www.concord-sots.ct.gov/CONCORD/online?sn=PublicInquiry&eid=9740',
+      },
       {
         label: 'Google: LLC by street address',
         url: 'https://www.google.com/search?q=' + encodeURIComponent('"' + street + '" "' + city + '" LLC'),
       },
       {
         label: 'Google: Owner + registered agent',
-        url: 'https://www.google.com/search?q=' + encodeURIComponent((name || '') + ' ' + city + ' CT owner "registered agent"'),
+        url: 'https://www.google.com/search?q=' + encodeURIComponent((name || '') + ' ' + city + ' owner "registered agent"'),
       },
       {
-        label: 'CT SOTS: Search by address',
-        url: 'https://www.concord-sots.ct.gov/CONCORD/online?sn=PublicInquiry&eid=9740',
-      },
-      {
-        label: 'OpenCorporates: Direct search',
-        url: 'https://opencorporates.com/companies?q=' + encodeURIComponent(street + ' ' + city) + '&jurisdiction_code=' + jurisdiction,
-      },
-      {
-        label: zip ? 'CT property records (by zip)' : 'CT property records',
-        url: 'https://www.google.com/search?q=' + encodeURIComponent(street + ' ' + city + ' CT property owner tax record'),
+        label: 'Property tax records',
+        url: 'https://www.google.com/search?q=' + encodeURIComponent(street + ' ' + city + ' ' + stateCode + ' property owner assessor'),
       },
     ];
 

@@ -937,10 +937,6 @@ function buildMailer(lead, index) {
       ${senderAddr1}, ${senderAddr2}<br>
       Email: ${senderEmail} &nbsp;·&nbsp; Phone: ${senderPhone}
     </div>
-    <div class="mailer-to">
-      ${lead.name}<br>
-      ${lead.address || ''}
-    </div>
     <div class="mailer-body">${body}</div>
     <div class="mailer-sig">
       <br>
@@ -1737,8 +1733,6 @@ function printSingleMailer(letterNum, leadId) {
     + '<div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">'
     + today + '<br>180 Heath Street, Unit 1, Jamaica Plain, MA 02130<br>'
     + 'Email: Tthibault5@outlook.com &middot; Phone: (203) 461-5119</div>'
-    + '<div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">'
-    + (lead.name || '') + '<br>' + (lead.address || '') + '</div>'
     + '<div style="font-size:13px;line-height:1.9;color:#333">'
     + safeBody + '<br><br>Tommy Thibault'
     + '</div></div></body></html>';

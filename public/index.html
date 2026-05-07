@@ -527,7 +527,62 @@ Sincerely,</textarea>
         <div style="font-size:20px;font-weight:600;margin-bottom:4px">Campaign CRM</div>
         <div style="font-size:13px;color:var(--text2)" id="crmSubtitle">Loading campaigns...</div>
       </div>
-      <button class="btn-primary" style="font-size:12px;padding:8px 16px" onclick="refreshCRM()">↻ Refresh</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-mailer" id="crmGenerateMailersBtn" onclick="openCRMMailerModal()" disabled>✉️ Generate Mailers</button>
+        <button class="btn-primary" style="font-size:12px;padding:8px 16px" onclick="refreshCRM()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- CRM MAILER TEMPLATE EDITOR -->
+    <div class="template-section" id="crmTemplateSection" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="template-title">✉️ Mailer Template</div>
+        <button onclick="document.getElementById('crmTemplateSection').style.display='none'" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1">✕</button>
+      </div>
+      <div class="template-sub">Customize your letter. Use tokens: <code style="color:var(--accent);font-size:11px">{business_name}</code> <code style="color:var(--accent);font-size:11px">{business_address}</code> <code style="color:var(--accent);font-size:11px">{city}</code></div>
+      <div class="template-fields">
+        <div class="field-group">
+          <div class="field-label">Your name</div>
+          <input type="text" class="field-input" id="crmSenderName" value="Tommy Thibault" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your company</div>
+          <input type="text" class="field-input" id="crmSenderCompany" value="" placeholder="Optional" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your address line 1</div>
+          <input type="text" class="field-input" id="crmSenderAddr1" value="180 Heath Street, Unit 1" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your city, state, zip</div>
+          <input type="text" class="field-input" id="crmSenderAddr2" value="Jamaica Plain, MA 02130" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your phone</div>
+          <input type="text" class="field-input" id="crmSenderPhone" value="(203) 461-5119" />
+        </div>
+        <div class="field-group">
+          <div class="field-label">Your email</div>
+          <input type="text" class="field-input" id="crmSenderEmail" value="Tthibault5@outlook.com" />
+        </div>
+      </div>
+      <div class="field-group" style="margin-bottom:10px">
+        <div class="field-label">Letter body</div>
+        <textarea class="field-textarea" id="crmLetterBody">Hello {business_name},
+
+My name is Tommy Thibault. I am a small time investor in Connecticut looking to acquire and operate a laundromat in the area long-term.
+
+I came across your location and wanted to reach out directly. If you have ever considered selling, retiring, partnering, or stepping back from day-to-day operations, I would welcome a confidential conversation.
+
+I understand timing matters, and there is absolutely no pressure. If now is not the right time, I would still be glad to connect for the future.
+
+You can reach me directly at (203) 461-5119 or Tthibault5@outlook.com.
+
+Thank you for your time.
+
+Sincerely,</textarea>
+      </div>
+      <div class="token-hint">Tokens auto-replaced: {business_name} {business_address} {city} {sender_name} {sender_company} {sender_phone} {sender_email}</div>
     </div>
 
     <!-- Summary stats -->
@@ -1416,6 +1471,16 @@ function renderCRMSummary() {
   document.getElementById('crmSubtitle').textContent = total > 0
     ? `${total} campaign${total !== 1 ? 's' : ''} · ${overdue} overdue · ${due} due soon · ${responded} responded`
     : 'No campaigns yet — save leads from Find Leads to start tracking';
+  // Enable/disable the Generate Mailers button
+  const crmMailerBtn = document.getElementById('crmGenerateMailersBtn');
+  if (crmMailerBtn) {
+    crmMailerBtn.disabled = total === 0;
+    // Show template section when there are leads
+    const tplSection = document.getElementById('crmTemplateSection');
+    if (tplSection && total > 0 && tplSection.style.display === 'none') {
+      // Don't auto-show — user clicks the button to reveal it
+    }
+  }
 }
 
 function renderCRMList() {
@@ -1721,25 +1786,131 @@ function printSingleMailer(letterNum, leadId) {
   const cityMatch = (lead.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
   const city = cityMatch ? cityMatch[1].trim() : 'your area';
   const today = new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' });
+  const senderName = document.getElementById('crmSenderName')?.value || 'Tommy Thibault';
+  const senderAddr1 = document.getElementById('crmSenderAddr1')?.value || '180 Heath Street, Unit 1';
+  const senderAddr2 = document.getElementById('crmSenderAddr2')?.value || 'Jamaica Plain, MA 02130';
+  const senderPhone = document.getElementById('crmSenderPhone')?.value || '(203) 461-5119';
+  const senderEmail = document.getElementById('crmSenderEmail')?.value || 'Tthibault5@outlook.com';
   const body = tpl.body
     .replace(/\{business_name\}/g, lead.name || 'your business')
     .replace(/\{business_address\}/g, lead.address || '')
-    .replace(/\{city\}/g, city);
+    .replace(/\{city\}/g, city)
+    .replace(/\{sender_name\}/g, senderName)
+    .replace(/\{sender_phone\}/g, senderPhone)
+    .replace(/\{sender_email\}/g, senderEmail);
   const safeBody = body.replace(/\n/g, '<br>');
   const printWin = window.open('', '_blank', 'width=900,height=700');
   const html = '<!DOCTYPE html><html><head><title></title>'
     + '<style>* {box-sizing:border-box;margin:0;padding:0;} body {background:white;font-family:Georgia,serif;} @page {margin:0;size:letter;}</style>'
     + '</head><body><div style="padding:72px 80px;color:#1a1a1a">'
     + '<div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">'
-    + today + '<br>180 Heath Street, Unit 1, Jamaica Plain, MA 02130<br>'
-    + 'Email: Tthibault5@outlook.com &middot; Phone: (203) 461-5119</div>'
+    + today + '<br>' + senderAddr1 + ', ' + senderAddr2 + '<br>'
+    + 'Email: ' + senderEmail + ' &middot; Phone: ' + senderPhone + '</div>'
     + '<div style="font-size:13px;line-height:1.9;color:#333">'
-    + safeBody + '<br><br>Tommy Thibault'
+    + safeBody + '<br><br>' + senderName
     + '</div></div></body></html>';
   printWin.document.write(html);
   printWin.document.close();
   printWin.focus();
   setTimeout(function() { printWin.print(); printWin.close(); }, 400);
+}
+
+// ── CRM MAILER GENERATION ────────────────────────────────────────────
+function openCRMMailerModal() {
+  if (!crmLeads.length) return;
+  // Show template section so user can edit before previewing
+  const tplSection = document.getElementById('crmTemplateSection');
+  if (tplSection) tplSection.style.display = 'block';
+
+  const mailersHtml = crmLeads.map((l, i) => buildCRMMailer(l, i)).join('');
+  document.getElementById('mailerBody').innerHTML = mailersHtml;
+  document.getElementById('mailerModal').classList.remove('hidden');
+
+  // Swap print button to use CRM version
+  const printBtn = document.querySelector('#mailerModal .modal-footer .btn-mailer');
+  if (printBtn) {
+    printBtn.onclick = printCRMMailers;
+    printBtn.textContent = '🖨️ Print All Mailers';
+  }
+}
+
+function buildCRMMailer(lead, index) {
+  const senderName = document.getElementById('crmSenderName').value || 'Tommy Thibault';
+  const senderAddr1 = document.getElementById('crmSenderAddr1').value || '180 Heath Street, Unit 1';
+  const senderAddr2 = document.getElementById('crmSenderAddr2').value || 'Jamaica Plain, MA 02130';
+  const senderPhone = document.getElementById('crmSenderPhone').value || '(203) 461-5119';
+  const senderEmail = document.getElementById('crmSenderEmail').value || 'Tthibault5@outlook.com';
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const cityMatch = (lead.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
+  const city = cityMatch ? cityMatch[1].trim() : 'your area';
+
+  let body = document.getElementById('crmLetterBody').value;
+  body = body
+    .replace(/\{business_name\}/g, lead.name || 'your business')
+    .replace(/\{business_address\}/g, lead.address || '')
+    .replace(/\{city\}/g, city)
+    .replace(/\{sender_name\}/g, senderName)
+    .replace(/\{sender_phone\}/g, senderPhone)
+    .replace(/\{sender_email\}/g, senderEmail);
+
+  return `<div class="mailer-page mailer-preview" id="crm-mailer-${index}">
+    <div class="mailer-from">
+      ${today}<br>
+      ${senderAddr1}, ${senderAddr2}<br>
+      Email: ${senderEmail} &nbsp;·&nbsp; Phone: ${senderPhone}
+    </div>
+    <div class="mailer-body">${body}</div>
+    <div class="mailer-sig">
+      <br>
+      ${senderName}
+    </div>
+  </div>`;
+}
+
+function printCRMMailers() {
+  if (!crmLeads.length) return;
+  const senderName = document.getElementById('crmSenderName').value || 'Tommy Thibault';
+  const senderAddr1 = document.getElementById('crmSenderAddr1').value || '180 Heath Street, Unit 1';
+  const senderAddr2 = document.getElementById('crmSenderAddr2').value || 'Jamaica Plain, MA 02130';
+  const senderPhone = document.getElementById('crmSenderPhone').value || '(203) 461-5119';
+  const senderEmail = document.getElementById('crmSenderEmail').value || 'Tthibault5@outlook.com';
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const mailerPages = crmLeads.map((l, i) => {
+    const cityMatch = (l.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
+    const city = cityMatch ? cityMatch[1].trim() : 'your area';
+    let body = document.getElementById('crmLetterBody').value;
+    body = body
+      .replace(/\{business_name\}/g, l.name || 'your business')
+      .replace(/\{business_address\}/g, l.address || '')
+      .replace(/\{city\}/g, city)
+      .replace(/\{sender_name\}/g, senderName)
+      .replace(/\{sender_phone\}/g, senderPhone)
+      .replace(/\{sender_email\}/g, senderEmail);
+    const breakStyle = i < crmLeads.length - 1 ? 'page-break-after:always;' : '';
+    return `
+      <div style="font-family:Georgia,serif;color:#1a1a1a;padding:72px 80px;${breakStyle}">
+        <div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">
+          ${today}<br>
+          ${senderAddr1}, ${senderAddr2}<br>
+          Email: ${senderEmail} &nbsp;&middot;&nbsp; Phone: ${senderPhone}
+        </div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">
+          ${l.name}<br>
+          ${l.address || ''}
+        </div>
+        <div style="font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap">${body}</div>
+        <div style="margin-top:40px;font-size:13px;line-height:1.9;color:#333">
+          <br><br>${senderName}
+        </div>
+      </div>`;
+  }).join('');
+
+  const printWin = window.open('', '_blank', 'width=900,height=700');
+  printWin.document.write('<!DOCTYPE html><html><head><title></title><style>* { box-sizing: border-box; margin: 0; padding: 0; } body { background: white; } @page { margin: 0; size: letter; } @media print { html, body { margin: 0; padding: 0; } }</style></head><body>' + mailerPages + '</body></html>');
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => { printWin.print(); printWin.close(); }, 400);
 }
 
 document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });

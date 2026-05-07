@@ -942,10 +942,6 @@ function printMailers() {
           ${senderAddr1}, ${senderAddr2}<br>
           Email: ${senderEmail} &nbsp;&middot;&nbsp; Phone: ${senderPhone}
         </div>
-        <div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">
-          ${l.name}<br>
-          ${l.address || ''}
-        </div>
         <div style="font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap">${body}</div>
         <div style="margin-top:40px;font-size:13px;line-height:1.9;color:#333">
           <br><br>${senderName}
@@ -1645,13 +1641,14 @@ function renderCRMDetail(lead) {
       </div>
     </div>` : '';
 
-  // Letter preview tabs
+  // Letter preview tabs — per-lead selection
+  const activeLetterNum = getCRMLeadLetter(lead.id);
   const letterTabsHtml = `
     <div class="letter-tabs">
-      ${[1,2,3].map(n => `<button class="letter-tab ${activeLetter===n?'active':''}" onclick="activeLetter=${n};renderCRMDetail(crmLeads.find(l=>l.id==='${lead.id}'))">Letter ${n}</button>`).join('')}
+      ${[1,2,3].map(n => `<button class="letter-tab ${activeLetterNum===n?'active':''}" onclick="setCRMLeadLetter('${lead.id}', ${n})">Letter ${n}</button>`).join('')}
     </div>`;
 
-  const tpl = LETTER_TEMPLATES[activeLetter];
+  const tpl = LETTER_TEMPLATES[activeLetterNum];
   const cityMatch = (lead.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
   const city = cityMatch ? cityMatch[1].trim() : 'your area';
   const previewBody = tpl.body
@@ -1717,7 +1714,7 @@ function renderCRMDetail(lead) {
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px 20px;font-family:Georgia,serif;font-size:13px;color:#ccc;line-height:1.8;white-space:pre-wrap">${previewBody}
 
 Tommy Thibault</div>
-        <button class="btn-add-touch" style="margin-top:8px" onclick="printSingleMailer(${activeLetter}, '${lead.id}')">🖨️ Print this letter</button>
+        <button class="btn-add-touch" style="margin-top:8px" onclick="printSingleMailer(getCRMLeadLetter('${lead.id}'), '${lead.id}')">🖨️ Print this letter</button>
       </div>
     </div>`;
 }
@@ -1834,6 +1831,20 @@ function openCRMMailerModal() {
   }
 }
 
+// Per-lead letter selection: leadId -> letter number (1, 2, or 3). Defaults to 1.
+const crmLeadLetterSelection = {};
+
+function getCRMLeadLetter(leadId) {
+  return crmLeadLetterSelection[leadId] || 1;
+}
+
+function setCRMLeadLetter(leadId, num) {
+  crmLeadLetterSelection[leadId] = num;
+  // Re-render detail so preview updates
+  const lead = crmLeads.find(l => l.id === leadId);
+  if (lead) renderCRMDetail(lead);
+}
+
 function buildCRMMailer(lead, index) {
   const senderName = document.getElementById('crmSenderName').value || 'Tommy Thibault';
   const senderAddr1 = document.getElementById('crmSenderAddr1').value || '180 Heath Street, Unit 1';
@@ -1844,8 +1855,10 @@ function buildCRMMailer(lead, index) {
   const cityMatch = (lead.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
   const city = cityMatch ? cityMatch[1].trim() : 'your area';
 
-  let body = document.getElementById('crmLetterBody').value;
-  body = body
+  // Use the per-lead selected letter template
+  const letterNum = getCRMLeadLetter(lead.id);
+  const tpl = LETTER_TEMPLATES[letterNum];
+  let body = tpl.body
     .replace(/\{business_name\}/g, lead.name || 'your business')
     .replace(/\{business_address\}/g, lead.address || '')
     .replace(/\{city\}/g, city)
@@ -1879,8 +1892,10 @@ function printCRMMailers() {
   const mailerPages = crmLeads.map((l, i) => {
     const cityMatch = (l.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
     const city = cityMatch ? cityMatch[1].trim() : 'your area';
-    let body = document.getElementById('crmLetterBody').value;
-    body = body
+    // Use the per-lead selected letter template
+    const letterNum = getCRMLeadLetter(l.id);
+    const tpl = LETTER_TEMPLATES[letterNum];
+    let body = tpl.body
       .replace(/\{business_name\}/g, l.name || 'your business')
       .replace(/\{business_address\}/g, l.address || '')
       .replace(/\{city\}/g, city)
@@ -1894,10 +1909,6 @@ function printCRMMailers() {
           ${today}<br>
           ${senderAddr1}, ${senderAddr2}<br>
           Email: ${senderEmail} &nbsp;&middot;&nbsp; Phone: ${senderPhone}
-        </div>
-        <div style="font-size:14px;font-weight:700;margin-bottom:28px;line-height:1.6">
-          ${l.name}<br>
-          ${l.address || ''}
         </div>
         <div style="font-size:13px;line-height:1.9;color:#333;white-space:pre-wrap">${body}</div>
         <div style="margin-top:40px;font-size:13px;line-height:1.9;color:#333">

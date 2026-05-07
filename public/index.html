@@ -206,10 +206,24 @@
   /* CRM */
   .crm-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; align-items: start; }
   .crm-lead-list { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); max-height: 80vh; overflow-y: auto; }
-  .crm-lead-item { padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; }
+  .crm-lead-item { padding: 10px 14px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.12s; display: flex; align-items: flex-start; gap: 10px; }
   .crm-lead-item:last-child { border-bottom: none; }
   .crm-lead-item:hover { background: var(--bg3); }
   .crm-lead-item.active { background: rgba(232,255,71,0.07); border-left: 3px solid var(--accent); }
+  .crm-lead-item.selected { background: rgba(232,255,71,0.04); }
+  .crm-cb { width: 15px; height: 15px; flex-shrink: 0; margin-top: 3px; cursor: pointer; accent-color: var(--accent); }
+  .crm-lead-body { flex: 1; min-width: 0; }
+  .crm-selection-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: var(--bg3); border-bottom: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; flex-wrap: wrap; }
+  .crm-sel-count { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text2); flex: 1; }
+  .crm-sel-count span { color: var(--accent); font-weight: 600; }
+  .btn-sel { font-size: 11px; font-family: 'DM Mono', monospace; background: transparent; border: 1px solid var(--border2); border-radius: 5px; color: var(--text2); padding: 3px 9px; cursor: pointer; white-space: nowrap; }
+  .btn-sel:hover { border-color: var(--accent); color: var(--accent); }
+  .batch-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .batch-modal-overlay.hidden { display: none; }
+  .batch-modal { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; width: 100%; max-width: 480px; overflow: hidden; display: flex; flex-direction: column; }
+  .batch-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .batch-modal-body { padding: 20px; }
+  .batch-modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
   .crm-lead-name { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
   .crm-lead-meta { font-size: 11px; color: var(--text2); font-family: 'DM Mono', monospace; margin-bottom: 5px; }
   .crm-status-badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; font-family: 'DM Mono', monospace; }
@@ -527,7 +541,8 @@ Sincerely,</textarea>
         <div style="font-size:20px;font-weight:600;margin-bottom:4px">Campaign CRM</div>
         <div style="font-size:13px;color:var(--text2)" id="crmSubtitle">Loading campaigns...</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn-outline" id="crmBatchTouchBtn" onclick="openBatchTouchModal()" disabled style="font-size:12px;padding:8px 16px">📋 Log Touchpoint</button>
         <button class="btn-mailer" id="crmGenerateMailersBtn" onclick="openCRMMailerModal()" disabled>✉️ Generate Mailers</button>
         <button class="btn-primary" style="font-size:12px;padding:8px 16px" onclick="refreshCRM()">↻ Refresh</button>
       </div>
@@ -597,8 +612,15 @@ Sincerely,</textarea>
       <!-- Lead list -->
       <div>
         <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Campaigns</div>
-        <div class="crm-lead-list" id="crmLeadList">
-          <div class="crm-empty">No campaigns yet — save leads from Find Leads to start tracking outreach</div>
+        <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <div class="crm-selection-bar" id="crmSelectionBar">
+            <div class="crm-sel-count" id="crmSelCount">Select leads to act on them in bulk</div>
+            <button class="btn-sel" onclick="crmSelectAll()">All</button>
+            <button class="btn-sel" onclick="crmSelectNone()">None</button>
+          </div>
+          <div class="crm-lead-list" id="crmLeadList" style="border:none;border-radius:0">
+            <div class="crm-empty">No campaigns yet — save leads from Find Leads to start tracking outreach</div>
+          </div>
         </div>
       </div>
       <!-- Detail panel -->
@@ -1329,6 +1351,7 @@ let activeCrmLeadId = null;
 let showTouchForm = false;
 let showResponseForm = false;
 let activeLetter = 1;
+let crmSelectedIds = new Set();
 
 const LETTER_TEMPLATES = {
   1: {
@@ -1450,6 +1473,120 @@ function getFollowUpStatus(lead) {
   return { status: 'waiting', label: `Next in ${daysUntilDue}d`, color: '#9E9E9E', daysUntilDue };
 }
 
+function updateCRMActionButtons() {
+  const selCount = crmSelectedIds.size;
+  const total = crmLeads.length;
+  const mailerBtn = document.getElementById('crmGenerateMailersBtn');
+  const touchBtn = document.getElementById('crmBatchTouchBtn');
+  const selCountEl = document.getElementById('crmSelCount');
+
+  if (total === 0) {
+    if (mailerBtn) mailerBtn.disabled = true;
+    if (touchBtn) touchBtn.disabled = true;
+    if (selCountEl) selCountEl.innerHTML = 'Select leads to act on them in bulk';
+    return;
+  }
+
+  const effectiveCount = selCount > 0 ? selCount : total;
+  const label = selCount > 0 ? `<span>${selCount}</span> of ${total} selected` : `${total} leads — none selected`;
+  if (selCountEl) selCountEl.innerHTML = label;
+
+  if (mailerBtn) {
+    mailerBtn.disabled = false;
+    mailerBtn.textContent = selCount > 0 ? `✉️ Generate Mailers (${selCount})` : `✉️ Generate Mailers (all ${total})`;
+  }
+  if (touchBtn) {
+    touchBtn.disabled = false;
+    touchBtn.textContent = selCount > 0 ? `📋 Log Touchpoint (${selCount})` : `📋 Log Touchpoint (all ${total})`;
+  }
+}
+
+function crmSelectAll() {
+  crmLeads.forEach(l => crmSelectedIds.add(l.id));
+  renderCRMList();
+  updateCRMActionButtons();
+}
+
+function crmSelectNone() {
+  crmSelectedIds.clear();
+  renderCRMList();
+  updateCRMActionButtons();
+}
+
+function toggleCRMSelection(leadId, e) {
+  e.stopPropagation();
+  if (crmSelectedIds.has(leadId)) {
+    crmSelectedIds.delete(leadId);
+  } else {
+    crmSelectedIds.add(leadId);
+  }
+  renderCRMList();
+  updateCRMActionButtons();
+}
+
+function getActiveCRMLeads() {
+  // Returns selected leads if any, otherwise all leads
+  if (crmSelectedIds.size > 0) {
+    return crmLeads.filter(l => crmSelectedIds.has(l.id));
+  }
+  return crmLeads;
+}
+
+function openBatchTouchModal() {
+  const leads = getActiveCRMLeads();
+  if (!leads.length) return;
+  const subtitle = leads.length === crmLeads.length
+    ? `Logging for all ${leads.length} leads`
+    : `Logging for ${leads.length} selected lead${leads.length !== 1 ? 's' : ''}`;
+  document.getElementById('batchTouchSubtitle').textContent = subtitle;
+  document.getElementById('bt-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('batchTouchModal').classList.remove('hidden');
+}
+
+function closeBatchTouchModal() {
+  document.getElementById('batchTouchModal').classList.add('hidden');
+}
+
+async function saveBatchTouchpoint() {
+  const leads = getActiveCRMLeads();
+  const type = document.getElementById('bt-type').value;
+  const date = document.getElementById('bt-date').value;
+  const num = parseInt(document.getElementById('bt-num').value);
+  const letter = document.getElementById('bt-letter').value;
+  const notes = document.getElementById('bt-notes').value;
+  if (!date) return alert('Please select a date');
+
+  const saveBtn = document.querySelector('#batchTouchModal .btn-crm-add');
+  saveBtn.disabled = true;
+  saveBtn.textContent = `Saving 0 / ${leads.length}...`;
+
+  let saved = 0;
+  const errors = [];
+  for (const lead of leads) {
+    try {
+      await crmFetch('add_touchpoint', {
+        lead_id: lead.id,
+        touch_number: num,
+        contact_type: type,
+        sent_date: date,
+        letter_template: letter ? parseInt(letter) : null,
+        notes
+      });
+      saved++;
+      saveBtn.textContent = `Saving ${saved} / ${leads.length}...`;
+    } catch(e) {
+      errors.push(lead.name + ': ' + e.message);
+    }
+  }
+
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Save for all selected';
+  closeBatchTouchModal();
+  await refreshCRM();
+  if (activeCrmLeadId) selectCRMLead(activeCrmLeadId);
+  if (errors.length) alert(`Saved ${saved} of ${leads.length}.\n\nErrors:\n` + errors.join('\n'));
+}
+
 function renderCRMSummary() {
   const total = crmLeads.length;
   let due = 0, overdue = 0, responded = 0;
@@ -1467,16 +1604,7 @@ function renderCRMSummary() {
   document.getElementById('crmSubtitle').textContent = total > 0
     ? `${total} campaign${total !== 1 ? 's' : ''} · ${overdue} overdue · ${due} due soon · ${responded} responded`
     : 'No campaigns yet — save leads from Find Leads to start tracking';
-  // Enable/disable the Generate Mailers button
-  const crmMailerBtn = document.getElementById('crmGenerateMailersBtn');
-  if (crmMailerBtn) {
-    crmMailerBtn.disabled = total === 0;
-    // Show template section when there are leads
-    const tplSection = document.getElementById('crmTemplateSection');
-    if (tplSection && total > 0 && tplSection.style.display === 'none') {
-      // Don't auto-show — user clicks the button to reveal it
-    }
-  }
+  updateCRMActionButtons();
 }
 
 function renderCRMList() {
@@ -1497,14 +1625,18 @@ function renderCRMList() {
     const fs = getFollowUpStatus(lead);
     const touches = lead.touchpoints || [];
     const isActive = lead.id === activeCrmLeadId;
+    const isSelected = crmSelectedIds.has(lead.id);
     const touchCount = touches.length;
-    return `<div class="crm-lead-item ${isActive ? 'active' : ''}" onclick="selectCRMLead('${lead.id}')">
-      <div class="crm-lead-name">${lead.name}</div>
-      <div class="crm-lead-meta">${(lead.address || '').replace(', USA', '')}</div>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <span class="crm-status-badge" style="background:${fs.color}22;color:${fs.color};border:1px solid ${fs.color}44">${fs.label}</span>
-        <span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${touchCount} touch${touchCount !== 1 ? 'es' : ''}</span>
-        ${lead.responses?.length ? `<span style="font-size:10px;color:var(--teal);font-family:'DM Mono',monospace">💬 ${lead.responses.length} response</span>` : ''}
+    return `<div class="crm-lead-item ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''}" onclick="selectCRMLead('${lead.id}')">
+      <input type="checkbox" class="crm-cb" ${isSelected ? 'checked' : ''} onclick="toggleCRMSelection('${lead.id}', event)" />
+      <div class="crm-lead-body">
+        <div class="crm-lead-name">${lead.name}</div>
+        <div class="crm-lead-meta">${(lead.address || '').replace(', USA', '')}</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span class="crm-status-badge" style="background:${fs.color}22;color:${fs.color};border:1px solid ${fs.color}44">${fs.label}</span>
+          <span style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${touchCount} touch${touchCount !== 1 ? 'es' : ''}</span>
+          ${lead.responses?.length ? `<span style="font-size:10px;color:var(--teal);font-family:'DM Mono',monospace">💬 ${lead.responses.length} response</span>` : ''}
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1814,12 +1946,13 @@ function printSingleMailer(letterNum, leadId) {
 
 // ── CRM MAILER GENERATION ────────────────────────────────────────────
 function openCRMMailerModal() {
-  if (!crmLeads.length) return;
+  const leads = getActiveCRMLeads();
+  if (!leads.length) return;
   // Show template section so user can edit before previewing
   const tplSection = document.getElementById('crmTemplateSection');
   if (tplSection) tplSection.style.display = 'block';
 
-  const mailersHtml = crmLeads.map((l, i) => buildCRMMailer(l, i)).join('');
+  const mailersHtml = leads.map((l, i) => buildCRMMailer(l, i)).join('');
   document.getElementById('mailerBody').innerHTML = mailersHtml;
   document.getElementById('mailerModal').classList.remove('hidden');
 
@@ -1827,7 +1960,7 @@ function openCRMMailerModal() {
   const printBtn = document.querySelector('#mailerModal .modal-footer .btn-mailer');
   if (printBtn) {
     printBtn.onclick = printCRMMailers;
-    printBtn.textContent = '🖨️ Print All Mailers';
+    printBtn.textContent = `🖨️ Print ${leads.length} Mailer${leads.length !== 1 ? 's' : ''}`;
   }
 }
 
@@ -1881,7 +2014,8 @@ function buildCRMMailer(lead, index) {
 }
 
 function printCRMMailers() {
-  if (!crmLeads.length) return;
+  const leads = getActiveCRMLeads();
+  if (!leads.length) return;
   const senderName = document.getElementById('crmSenderName').value || 'Tommy Thibault';
   const senderAddr1 = document.getElementById('crmSenderAddr1').value || '180 Heath Street, Unit 1';
   const senderAddr2 = document.getElementById('crmSenderAddr2').value || 'Jamaica Plain, MA 02130';
@@ -1889,7 +2023,7 @@ function printCRMMailers() {
   const senderEmail = document.getElementById('crmSenderEmail').value || 'Tthibault5@outlook.com';
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-  const mailerPages = crmLeads.map((l, i) => {
+  const mailerPages = leads.map((l, i) => {
     const cityMatch = (l.address || '').match(/,\s*([^,]+),\s*[A-Z]{2}/);
     const city = cityMatch ? cityMatch[1].trim() : 'your area';
     // Use the per-lead selected letter template
@@ -1902,7 +2036,7 @@ function printCRMMailers() {
       .replace(/\{sender_name\}/g, senderName)
       .replace(/\{sender_phone\}/g, senderPhone)
       .replace(/\{sender_email\}/g, senderEmail);
-    const breakStyle = i < crmLeads.length - 1 ? 'page-break-after:always;' : '';
+    const breakStyle = i < leads.length - 1 ? 'page-break-after:always;' : '';
     return `
       <div style="font-family:Georgia,serif;color:#1a1a1a;padding:72px 80px;${breakStyle}">
         <div style="font-size:13px;color:#555;margin-bottom:36px;line-height:1.7">
@@ -2040,11 +2174,71 @@ document.getElementById('llcModal').addEventListener('click', e => {
   if (e.target === document.getElementById('llcModal')) closeLLCModal();
 });
 
+document.getElementById('batchTouchModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('batchTouchModal')) closeBatchTouchModal();
+});
+
 document.getElementById('mailerModal').addEventListener('click', e => { if (e.target === document.getElementById('mailerModal')) closeMailerModal(); });
 
 // Init
 updateSavedUI();
 </script>
+
+<!-- BATCH TOUCHPOINT MODAL -->
+<div class="batch-modal-overlay hidden" id="batchTouchModal">
+  <div class="batch-modal">
+    <div class="batch-modal-header">
+      <div>
+        <div style="font-size:14px;font-weight:500">Log Touchpoint</div>
+        <div style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;margin-top:2px" id="batchTouchSubtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeBatchTouchModal()">✕</button>
+    </div>
+    <div class="batch-modal-body">
+      <div class="crm-form" style="background:transparent;border:none;padding:0;margin:0">
+        <div class="crm-form-row">
+          <div><label>Contact type</label>
+            <select id="bt-type">
+              <option value="letter">✉️ Letter</option>
+              <option value="email">📧 Email</option>
+              <option value="phone">📞 Phone call</option>
+              <option value="inperson">🤝 In person</option>
+            </select>
+          </div>
+          <div><label>Date sent</label>
+            <input type="date" id="bt-date" />
+          </div>
+        </div>
+        <div class="crm-form-row">
+          <div><label>Touch number</label>
+            <select id="bt-num">
+              <option value="1">1st touch</option>
+              <option value="2">2nd touch</option>
+              <option value="3">3rd touch</option>
+            </select>
+          </div>
+          <div><label>Letter template used</label>
+            <select id="bt-letter">
+              <option value="">None / other</option>
+              <option value="1">Letter 1 — Introduction</option>
+              <option value="2">Letter 2 — Follow Up</option>
+              <option value="3">Letter 3 — Final</option>
+            </select>
+          </div>
+        </div>
+        <div class="crm-form-row full">
+          <div><label>Notes (optional)</label>
+            <textarea id="bt-notes" placeholder="Any notes about this batch touchpoint..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="batch-modal-footer">
+      <button class="btn-crm-cancel" onclick="closeBatchTouchModal()">Cancel</button>
+      <button class="btn-crm-add" onclick="saveBatchTouchpoint()">Save for all selected</button>
+    </div>
+  </div>
+</div>
 
 <!-- LLC LOOKUP MODAL -->
 <div class="llc-modal-overlay hidden" id="llcModal">

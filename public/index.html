@@ -511,9 +511,8 @@
       </div>
       <!-- RIGHT: map (full width before search, half after) -->
       <div id="findLeadsMap" class="find-leads-map">
-        <div id="mainMap">
-          <div class="map-empty"><span style="font-size:28px">🗺️</span><span id="mapSubtitle">Loading CRM locations...</span></div>
-        </div>
+        <div id="mapSubtitle" style="font-size:13px;color:var(--text2);margin-bottom:6px;min-height:18px">Loading CRM locations...</div>
+        <div id="mainMap"></div>
       </div>
     </div>
   </div>
@@ -1483,18 +1482,13 @@ async function runSearch() {
       const scores = calcAllScores(l);
       return { ...l, id: l.id || 'lm_' + i, distressScore: scores.distress, densityScore: scores.density, desirabilityScore: scores.desirability };
     });
-    // Store the maps key from the search response and load Maps API immediately
-    if (data.mapsKey) {
-      googleMapsKey = data.mapsKey;
-      loadMapsApi(); // start loading in background right after search completes
-    }
+    // Store the maps key from the search response
+    if (data.mapsKey) googleMapsKey = data.mapsKey;
     expandedIds.clear();
-    // Reset map state so it re-renders fresh for new search
     map = null;
     markers = [];
     activeMarkerIndex = null;
     renderLeads();
-    // Switch to split view with map
     showSplitView();
   } catch (err) {
     document.getElementById('leadsList').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Search failed</div><div class="empty-sub">${err.message}</div></div>`;

@@ -384,6 +384,12 @@
     .find-leads-postsearch #mainMap { height: 45vh; min-height: 280px; }
     .find-leads-presearch #mainMap { height: 60vh; min-height: 300px; }
   }
+
+  /* ── LEAD SELECTION ─────────────────────────────────────────── */
+  .lead-selected { border-color: rgba(232,255,71,0.4) !important; background: rgba(232,255,71,0.03); }
+  .lead-selection-bar { display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;flex-wrap:wrap; }
+  .lead-sel-count { font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);flex:1; }
+  .lead-sel-count span { color:var(--accent);font-weight:600; }
 </style>
 <script>
   // Google Maps loaded dynamically after search so we have the API key available
@@ -501,6 +507,12 @@
           <span class="results-label" id="resultsLabel"></span>
           <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
         </div>
+        <div id="leadsSelectionBar" class="lead-selection-bar" style="display:none">
+          <div class="lead-sel-count" id="leadsSelCount">No leads selected</div>
+          <button class="btn-sel" onclick="leadsSelectAll()">All</button>
+          <button class="btn-sel" onclick="leadsSelectNone()">None</button>
+          <button class="btn-sel" onclick="saveSelectedLeads()" style="border-color:rgba(232,255,71,0.4);color:var(--accent)" id="saveSelectedBtn">Save Selected</button>
+        </div>
         <div id="leadsList">
           <div class="empty">
             <div class="empty-icon">🗺️</div>
@@ -579,6 +591,12 @@ Sincerely,</textarea>
       <div class="token-hint">Tokens auto-replaced: {business_name} {business_address} {city} {sender_name} {sender_company} {sender_phone} {sender_email}</div>
     </div>
 
+    <div id="savedSelectionBar" class="lead-selection-bar" style="display:none">
+      <div class="lead-sel-count" id="savedSelCount">No leads selected</div>
+      <button class="btn-sel" onclick="savedSelectAll()">All</button>
+      <button class="btn-sel" onclick="savedSelectNone()">None</button>
+      <button class="btn-sel" onclick="moveSelectedToCRM()" style="border-color:rgba(232,255,71,0.4);color:var(--accent)" id="moveToCRMBtn">Move to CRM</button>
+    </div>
     <div id="savedList"></div>
   </div>
 
@@ -705,6 +723,8 @@ Sincerely,</textarea>
 <script>
 let allLeads = [];
 let expandedIds = new Set();
+let selectedLeadIds = new Set();  // selected in Find Leads
+let selectedSavedIds = new Set(); // selected in Saved tab
 
 // Persist saved leads across sessions using localStorage
 function getSaved() {
@@ -877,7 +897,14 @@ function renderLeadCard(l, fromSaved = false) {
   const reviews = (l.reviews || []).map(r => `<div class="snippet-item">"${r.text}" <span style="color:var(--text3)">— ${r.author}</span></div>`).join('');
   const registryUrl = getRegistryUrl(l);
   const dataAttr = `data-lead='${JSON.stringify(l).replace(/'/g, "&#39;")}'`;
-  return `<div class="lead-card">
+  const isSearchSelected = !fromSaved && selectedLeadIds.has(l.id);
+  const isSavedSelected = fromSaved && selectedSavedIds.has(l.id);
+  const isSelected = isSearchSelected || isSavedSelected;
+  const cbFn = fromSaved ? `toggleSavedSelection('${l.id}')` : `toggleLeadSelection('${l.id}')`;
+  return `<div class="lead-card ${isSelected ? 'lead-selected' : ''}" id="lead-card-${l.id}">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:2px">
+      <input type="checkbox" class="lead-cb" ${isSelected ? 'checked' : ''} onclick="${cbFn}" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0" />
+    </div>
     <div class="score-wrap">
       <div class="score-pill ${desClass}"><span class="sc-num">${l.desirabilityScore}</span><span class="sc-sub">desire</span></div>
       <div class="score-pill ${dClass}"><span class="sc-num">${l.distressScore}</span><span class="sc-sub">distress</span></div>
@@ -893,6 +920,8 @@ function renderLeadCard(l, fromSaved = false) {
       <div class="lead-meta">
         <span class="stars">${starsStr(l.rating)}</span>
         <span>${l.reviewCount} reviews</span>
+        ${l.censusData ? `<span style="color:var(--teal)">${(l.censusData.totalPopulation/1000).toFixed(0)}k pop</span>` : ''}
+        ${l.censusData && l.censusData.multiFamilyPct >= 10 ? `<span style="color:var(--blue)">${l.censusData.multiFamilyPct}% multi-fam</span>` : ''}
         ${l.phone ? `<span>${l.phone}</span>` : ''}
         ${l.website ? `<a href="${l.website}" target="_blank" style="color:var(--blue);text-decoration:none">website ↗</a>` : ''}
       </div>
@@ -912,6 +941,145 @@ function renderLeadCard(l, fromSaved = false) {
       ${fromSaved ? `<button class="btn-action" style="color:var(--red);border-color:rgba(255,79,79,0.3)" onclick="unsaveLead('${l.id}')">Remove</button>` : ''}
     </div>
   </div>`;
+}
+
+// ── FIND LEADS SELECTION ─────────────────────────────────────────────
+function toggleLeadSelection(id) {
+  if (selectedLeadIds.has(id)) selectedLeadIds.delete(id);
+  else selectedLeadIds.add(id);
+  updateLeadsSelectionBar();
+  // Re-render just this card's selected state
+  const card = document.getElementById('lead-card-' + id);
+  if (card) {
+    card.classList.toggle('lead-selected', selectedLeadIds.has(id));
+    const cb = card.querySelector('.lead-cb');
+    if (cb) cb.checked = selectedLeadIds.has(id);
+  }
+}
+
+function leadsSelectAll() {
+  allLeads.forEach(l => selectedLeadIds.add(l.id));
+  renderLeads();
+  updateLeadsSelectionBar();
+}
+
+function leadsSelectNone() {
+  selectedLeadIds.clear();
+  renderLeads();
+  updateLeadsSelectionBar();
+}
+
+function updateLeadsSelectionBar() {
+  const bar = document.getElementById('leadsSelectionBar');
+  const countEl = document.getElementById('leadsSelCount');
+  if (!bar) return;
+  if (!allLeads.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const n = selectedLeadIds.size;
+  countEl.innerHTML = n > 0 ? `<span>${n}</span> of ${allLeads.length} selected` : `${allLeads.length} leads — none selected`;
+  document.getElementById('saveSelectedBtn').textContent = n > 0 ? `Save Selected (${n})` : `Save All (${allLeads.length})`;
+}
+
+function saveSelectedLeads() {
+  const toSave = selectedLeadIds.size > 0
+    ? allLeads.filter(l => selectedLeadIds.has(l.id))
+    : allLeads;
+  toSave.forEach(l => saveLeadData(l));
+  updateSavedCount();
+  renderLeads();
+  const n = toSave.length;
+  const btn = document.getElementById('saveSelectedBtn');
+  const orig = btn.textContent;
+  btn.textContent = `✓ Saved ${n}!`;
+  btn.style.color = '#43A047';
+  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+}
+
+// ── SAVED TAB SELECTION ───────────────────────────────────────────────
+function toggleSavedSelection(id) {
+  if (selectedSavedIds.has(id)) selectedSavedIds.delete(id);
+  else selectedSavedIds.add(id);
+  updateSavedSelectionBar();
+  const card = document.getElementById('lead-card-' + id);
+  if (card) {
+    card.classList.toggle('lead-selected', selectedSavedIds.has(id));
+    const cb = card.querySelector('.lead-cb');
+    if (cb) cb.checked = selectedSavedIds.has(id);
+  }
+}
+
+function savedSelectAll() {
+  getSaved().forEach(l => selectedSavedIds.add(l.id));
+  renderSaved();
+  updateSavedSelectionBar();
+}
+
+function savedSelectNone() {
+  selectedSavedIds.clear();
+  renderSaved();
+  updateSavedSelectionBar();
+}
+
+function updateSavedSelectionBar() {
+  const bar = document.getElementById('savedSelectionBar');
+  const countEl = document.getElementById('savedSelCount');
+  if (!bar) return;
+  const saved = getSaved();
+  if (!saved.length) { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const n = selectedSavedIds.size;
+  countEl.innerHTML = n > 0 ? `<span>${n}</span> of ${saved.length} selected` : `${saved.length} leads — none selected`;
+  document.getElementById('moveToCRMBtn').textContent = n > 0 ? `Move to CRM (${n})` : `Move All to CRM (${saved.length})`;
+}
+
+async function moveSelectedToCRM() {
+  const saved = getSaved();
+  const toMove = selectedSavedIds.size > 0
+    ? saved.filter(l => selectedSavedIds.has(l.id))
+    : saved;
+  if (!toMove.length) return;
+
+  const btn = document.getElementById('moveToCRMBtn');
+  btn.disabled = true;
+  btn.textContent = `Adding 0 / ${toMove.length}...`;
+
+  let added = 0;
+  const errors = [];
+  for (const lead of toMove) {
+    try {
+      await crmFetch('add_lead', {
+        place_id: lead.id,
+        name: lead.name,
+        address: lead.address || '',
+        phone: lead.phone || '',
+        website: lead.website || '',
+        rating: lead.rating || null,
+        review_count: lead.reviewCount || 0,
+        lat: lead.lat || null,
+        lng: lead.lng || null,
+        desirability_score: lead.desirabilityScore || 0,
+        distress_score: lead.distressScore || 0,
+        density_score: lead.densityScore || 0,
+      });
+      added++;
+      btn.textContent = `Adding ${added} / ${toMove.length}...`;
+    } catch(e) {
+      errors.push(lead.name + ': ' + e.message);
+    }
+  }
+
+  btn.disabled = false;
+  selectedSavedIds.clear();
+  updateSavedSelectionBar();
+  renderSaved();
+
+  if (errors.length) {
+    alert(`Added ${added} of ${toMove.length} to CRM.\n\nErrors:\n` + errors.join('\n'));
+  } else {
+    btn.textContent = `✓ Added ${added} to CRM!`;
+    btn.style.color = '#43A047';
+    setTimeout(() => { updateSavedSelectionBar(); btn.style.color = ''; }, 2500);
+  }
 }
 
 function renderLeads() {
@@ -957,6 +1125,7 @@ function renderLeads() {
     return;
   }
   list.innerHTML = filtered.map(l => renderLeadCard(l)).join('');
+  updateLeadsSelectionBar();
 }
 
 function renderSaved() {
@@ -964,9 +1133,11 @@ function renderSaved() {
   const list = document.getElementById('savedList');
   if (!saved.length) {
     list.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No saved leads</div><div class="empty-sub">Go to Find Leads, search a city, and click Save on any lead</div></div>';
+    updateSavedSelectionBar();
     return;
   }
   list.innerHTML = saved.map(l => renderLeadCard(l, true)).join('');
+  updateSavedSelectionBar();
 }
 
 // MAILER GENERATION

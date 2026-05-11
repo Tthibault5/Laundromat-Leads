@@ -1,17 +1,11 @@
 {
   "outputDirectory": "public",
-  "functions": {
-    "api/*.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
-  "rewrites": [
-    { "source": "/api/auth", "destination": "/api/auth.js" },
-    { "source": "/api/places", "destination": "/api/places.js" },
-    { "source": "/api/crm", "destination": "/api/crm.js" },
-    { "source": "/api/mapskey", "destination": "/api/mapskey.js" },
-    { "source": "/api/owner", "destination": "/api/owner.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "/api/auth", "dest": "/api/auth.js" },
+    { "src": "/api/places", "dest": "/api/places.js" },
+    { "src": "/api/crm", "dest": "/api/crm.js" },
+    { "src": "/api/mapskey", "dest": "/api/mapskey.js" },
+    { "src": "/api/owner", "dest": "/api/owner.js" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

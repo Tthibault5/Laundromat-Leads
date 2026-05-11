@@ -1139,7 +1139,10 @@ function initFindLeadsMap() {
   if (allLeads.length) {
     showSplitView();
   } else {
+    // Always show the presearch layout; showPresearchMap guards against missing key
     showPresearchMap();
+    // If key not loaded yet, kick off load now
+    if (!googleMapsKey) preloadMapsKey();
   }
 }
 
@@ -1149,7 +1152,12 @@ function showPresearchMap() {
   content.className = 'find-leads-presearch';
   document.getElementById('findLeadsList').style.display = 'none';
 
-  document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
+  // If we don't have the key yet, show a placeholder and let preloadMapsKey trigger us when ready
+  if (!googleMapsKey) {
+    document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
+    document.getElementById('mapSubtitle').textContent = 'Loading map...';
+    return;
+  }
 
   if (window._mapsReady && typeof google !== 'undefined') {
     renderPresearchMap();
@@ -2378,6 +2386,10 @@ async function preloadMapsKey() {
     if (data.key) {
       googleMapsKey = data.key;
       loadMapsApi();
+      // If user is already on Find Leads tab, render the map now that we have the key
+      if (document.getElementById('page-search').classList.contains('active')) {
+        showPresearchMap();
+      }
     }
   } catch(e) { /* silent fail */ }
 }

@@ -2381,9 +2381,6 @@ async function preloadMapsKey() {
   } catch(e) { /* silent fail */ }
 }
 
-// Enter key on city search input (elements above this script are already in DOM)
-document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
-
 // Boot: skip login if already have a valid session token
 (function bootApp() {
   if (getToken()) {
@@ -2395,6 +2392,9 @@ document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key =
 
 // Wire up modal outside-click handlers after full page loads (modals are below this script)
 window.addEventListener('load', () => {
+  // Enter key on city search input
+  const cityIn = document.getElementById('cityIn');
+  if (cityIn) cityIn.addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
   const llc = document.getElementById('llcModal');
   if (llc) llc.addEventListener('click', e => { if (e.target === llc) closeLLCModal(); });
   const batch = document.getElementById('batchTouchModal');

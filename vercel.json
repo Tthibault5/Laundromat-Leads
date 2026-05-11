@@ -1,6 +1,7 @@
 {
   "outputDirectory": "public",
   "rewrites": [
+    { "source": "/api/auth", "destination": "/api/auth.js" },
     { "source": "/api/places", "destination": "/api/places.js" },
     { "source": "/api/crm", "destination": "/api/crm.js" },
     { "source": "/api/mapskey", "destination": "/api/mapskey.js" },

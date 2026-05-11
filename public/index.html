@@ -359,6 +359,31 @@
   .login-btn:hover { opacity:.9; }
   .login-btn:disabled { opacity:.5;cursor:not-allowed; }
   .login-error { font-size:12px;color:#ff6b6b;margin-top:8px;min-height:18px; }
+
+  /* ── FIND LEADS MERGED LAYOUT ──────────────────────────────── */
+  .find-leads-presearch { display: flex; flex-direction: column; }
+  .find-leads-postsearch { display: flex; gap: 16px; align-items: flex-start; }
+
+  .find-leads-list { flex: 0 0 50%; min-width: 0; max-height: calc(100vh - 280px); overflow-y: auto; }
+  .find-leads-map { flex: 1; min-width: 0; position: sticky; top: 16px; }
+  .find-leads-presearch .find-leads-map { width: 100%; }
+
+  #mainMap { width: 100%; border-radius: var(--radius); overflow: hidden; }
+  .find-leads-presearch #mainMap { height: calc(100vh - 320px); min-height: 400px; }
+  .find-leads-postsearch #mainMap { height: calc(100vh - 280px); min-height: 400px; }
+
+  /* Map lead list in split view reuses existing map-lead-list styles */
+  .find-leads-list .map-lead-item { padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; gap: 10px; align-items: flex-start; transition: background 0.12s; }
+  .find-leads-list .map-lead-item:hover { background: var(--bg3); }
+  .find-leads-list .map-lead-item.highlighted { background: rgba(232,255,71,0.07); border-left: 3px solid var(--accent); }
+
+  @media (max-width: 768px) {
+    .find-leads-postsearch { flex-direction: column; }
+    .find-leads-list { flex: none; width: 100%; max-height: 50vh; }
+    .find-leads-map { flex: none; width: 100%; position: static; }
+    .find-leads-postsearch #mainMap { height: 45vh; min-height: 280px; }
+    .find-leads-presearch #mainMap { height: 60vh; min-height: 300px; }
+  }
 </style>
 <script>
   // Google Maps loaded dynamically after search so we have the API key available
@@ -401,14 +426,14 @@
 
 <div class="main">
   <div class="tabs">
-    <button class="tab active" id="tab-search" onclick="switchTab('search')">🔍 Find Leads</button>
+    <button class="tab active" id="tab-crm" onclick="switchTab('crm')">📊 CRM</button>
+    <button class="tab" id="tab-search" onclick="switchTab('search')">🔍 Find Leads</button>
     <button class="tab" id="tab-saved" onclick="switchTab('saved')">📋 Saved Leads <span id="tabSavedCount" style="font-size:11px;color:var(--text3)"></span></button>
-    <button class="tab" id="tab-map" onclick="switchTab('map')">🗺️ Map View</button>
-    <button class="tab" id="tab-crm" onclick="switchTab('crm')">📊 CRM</button>
   </div>
 
-  <!-- SEARCH PAGE -->
-  <div class="page active" id="page-search">
+  <!-- FIND LEADS PAGE (merged search + map) -->
+  <div class="page" id="page-search">
+    <!-- Top: search bar + filters -->
     <div class="search-section">
       <div class="search-label">Search location</div>
       <div class="search-row">
@@ -450,6 +475,7 @@
       </div>
     </div>
 
+    <!-- Summary row (shown after search) -->
     <div class="summary" id="summaryRow" style="display:none">
       <div class="stat-card"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">total leads</div></div>
       <div class="stat-card"><div class="stat-num" id="s-desirable" style="color:var(--accent)">0</div><div class="stat-lbl">high desirability (70+)</div></div>
@@ -457,21 +483,42 @@
       <div class="stat-card"><div class="stat-num" id="s-density" style="color:var(--teal)">0</div><div class="stat-lbl">high density (70+)</div></div>
     </div>
 
-    <div class="results-bar" id="resultsBar" style="display:none">
-      <span class="results-label" id="resultsLabel"></span>
-      <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
+    <!-- Map legend -->
+    <div class="map-legend" id="findLeadsLegend">
+      <div class="legend-item"><div class="legend-dot" style="background:#9E9E9E"></div>Not contacted</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FDD835"></div>1st letter sent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#FB8C00"></div>2nd letter sent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1E88E5"></div>Email sent</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8E24AA"></div>Owner contacted</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#43A047"></div>They responded!</div>
     </div>
 
-    <div id="leadsList">
-      <div class="empty">
-        <div class="empty-icon">🗺️</div>
-        <div class="empty-title">No leads loaded yet</div>
-        <div class="empty-sub">Enter a city or zip code above to find distressed laundromats</div>
+    <!-- Main content area: before search = full-width map, after search = split -->
+    <div id="findLeadsContent" class="find-leads-presearch">
+      <!-- LEFT: lead list (hidden before search) -->
+      <div id="findLeadsList" class="find-leads-list" style="display:none">
+        <div class="results-bar" id="resultsBar" style="display:none">
+          <span class="results-label" id="resultsLabel"></span>
+          <button class="export-btn" onclick="exportCSV()">Export CSV ↓</button>
+        </div>
+        <div id="leadsList">
+          <div class="empty">
+            <div class="empty-icon">🗺️</div>
+            <div class="empty-title">No leads loaded yet</div>
+            <div class="empty-sub">Enter a city or zip code above to find distressed laundromats</div>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT: map (full width before search, half after) -->
+      <div id="findLeadsMap" class="find-leads-map">
+        <div id="mainMap">
+          <div class="map-empty"><span style="font-size:28px">🗺️</span><span id="mapSubtitle">Loading CRM locations...</span></div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- SAVED LEADS PAGE -->
+    <!-- SAVED LEADS PAGE -->
   <div class="page" id="page-saved">
     <div class="saved-header">
       <div>
@@ -536,38 +583,8 @@ Sincerely,</textarea>
     <div id="savedList"></div>
   </div>
 
-  <!-- MAP PAGE -->
-  <div class="page" id="page-map">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div>
-        <div style="font-size:20px;font-weight:600;margin-bottom:4px">Map View</div>
-        <div style="font-size:13px;color:var(--text2)" id="mapSubtitle">Search for leads first to see them on the map</div>
-      </div>
-    </div>
-    <div class="map-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#9E9E9E"></div>Not contacted</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#FDD835"></div>1st letter sent</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#FB8C00"></div>2nd letter sent</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#1E88E5"></div>Email sent</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8E24AA"></div>Owner contacted</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#43A047"></div>They responded!</div>
-    </div>
-    <div class="map-split">
-      <!-- LEFT: Map -->
-      <div class="map-container" style="margin-bottom:0">
-        <div id="mainMap">
-          <div class="map-empty"><span style="font-size:28px">🗺️</span><span>Search for leads to populate the map</span></div>
-        </div>
-      </div>
-      <!-- RIGHT: Lead list -->
-      <div class="map-lead-list" id="mapLeadList">
-        <div class="map-empty" style="height:100%"><span style="font-size:24px">📍</span><span>Leads will appear here</span></div>
-      </div>
-    </div>
-  </div>
-
   <!-- CRM PAGE -->
-  <div class="page" id="page-crm">
+  <div class="page active" id="page-crm">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       <div>
         <div style="font-size:20px;font-weight:600;margin-bottom:4px">Campaign CRM</div>
@@ -727,12 +744,12 @@ function updateSavedUI() {
 }
 
 function switchTab(tab) {
-  ['search','saved','map','crm'].forEach(t => {
+  ['search','saved','crm'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     document.getElementById('page-' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'saved') renderSaved();
-  if (tab === 'map') initMapView();
+  if (tab === 'search') initFindLeadsMap();
   if (tab === 'crm') initCRM();
 }
 
@@ -1097,7 +1114,8 @@ function getStatus(id) { return getStatuses()[id] || 'none'; }
 
 // ── MAP ────────────────────────────────────────────────────────────
 let map = null;
-let markers = [];
+let markers = [];         // search result markers
+let crmMarkers = [];      // CRM lead overlay markers
 let googleMapsKey = null;
 let activeMarkerIndex = null;
 let mapsApiLoaded = false;
@@ -1115,45 +1133,147 @@ function loadMapsApi() {
   document.head.appendChild(script);
 }
 
-function initMapView() {
-  if (!allLeads.length) {
-    document.getElementById('mapSubtitle').textContent = 'Search for leads first to see them on the map';
+function initFindLeadsMap() {
+  // Called when switching to Find Leads tab
+  // If we have search results, show split view; otherwise show CRM-only map
+  if (allLeads.length) {
+    showSplitView();
+  } else {
+    showPresearchMap();
+  }
+}
+
+function showPresearchMap() {
+  // Full-width map with only CRM pins
+  const content = document.getElementById('findLeadsContent');
+  content.className = 'find-leads-presearch';
+  document.getElementById('findLeadsList').style.display = 'none';
+
+  document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
+
+  if (window._mapsReady && typeof google !== 'undefined') {
+    renderPresearchMap();
     return;
   }
+  window._mapsReadyCb = renderPresearchMap;
+  loadMapsApi();
+  let attempts = 0;
+  const poll = setInterval(() => {
+    attempts++;
+    if (typeof google !== 'undefined' && google.maps) { clearInterval(poll); window._mapsReady = true; renderPresearchMap(); }
+    if (attempts > 20) { clearInterval(poll); document.getElementById('mainMap').innerHTML = '<div class="map-empty"><span>⚠️</span><span>Map failed to load</span></div>'; }
+  }, 500);
+}
+
+function renderPresearchMap() {
+  window._mapsReady = true;
+  const mapDiv = document.getElementById('mainMap');
+  mapDiv.innerHTML = '';
+
+  // Center on CRM leads if we have them, otherwise US center
+  const crmWithCoords = crmLeads.filter(l => l.lat && l.lng);
+  const center = crmWithCoords.length
+    ? { lat: crmWithCoords[0].lat, lng: crmWithCoords[0].lng }
+    : { lat: 41.5, lng: -72.7 }; // Connecticut default
+
+  map = new google.maps.Map(mapDiv, {
+    center,
+    zoom: crmWithCoords.length ? 10 : 8,
+    mapTypeId: 'roadmap',
+    styles: getDarkMapStyles(),
+    zoomControl: true, mapTypeControl: false, streetViewControl: false, fullscreenControl: true,
+  });
+  sharedInfoWindow = new google.maps.InfoWindow();
+  placeCRMMarkers();
+
+  if (crmWithCoords.length) {
+    fitMapToBounds(crmWithCoords);
+    document.getElementById('mapSubtitle').textContent = crmWithCoords.length + ' CRM locations — search above to find new leads';
+  } else {
+    document.getElementById('mapSubtitle').textContent = 'Search above to find laundromats';
+  }
+}
+
+function showSplitView() {
+  // 50/50 split: list left, map right
+  const contentEl = document.getElementById('findLeadsContent');
+  contentEl.className = 'find-leads-postsearch';
+  document.getElementById('findLeadsList').style.display = 'block';
+  document.getElementById('resultsBar').style.display = '';
+
   document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
 
   if (window._mapsReady && typeof google !== 'undefined') {
     renderMap();
     return;
   }
-
-  // Set callback for when script loads
   window._mapsReadyCb = renderMap;
-
-  // Load the script if not already loading
   loadMapsApi();
-
-  // Poll as safety net (handles race conditions)
   let attempts = 0;
   const poll = setInterval(() => {
     attempts++;
-    if (typeof google !== 'undefined' && google.maps) {
-      clearInterval(poll);
-      window._mapsReady = true;
-      renderMap();
-    }
-    if (attempts > 20) {
-      clearInterval(poll);
-      document.getElementById('mainMap').innerHTML = '<div class="map-empty"><span>⚠️</span><span>Map failed to load — check your Google Maps API key has Maps JavaScript API enabled</span></div>';
-    }
+    if (typeof google !== 'undefined' && google.maps) { clearInterval(poll); window._mapsReady = true; renderMap(); }
+    if (attempts > 20) { clearInterval(poll); document.getElementById('mainMap').innerHTML = '<div class="map-empty"><span>⚠️</span><span>Map failed to load</span></div>'; }
   }, 500);
+}
+
+// Legacy alias — kept for any existing callers
+function initMapView() { initFindLeadsMap(); }
+
+function getDarkMapStyles() {
+  return [
+    { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#8888aa' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2d2d44' }] },
+    { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a1a2e' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1117' }] },
+    { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#1e1e2e' }] },
+    { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#1e1e2e' }] },
+    { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#e8ff47' }, { weight: 1.5 }] },
+  ];
+}
+
+function placeCRMMarkers() {
+  // Clear old CRM markers
+  crmMarkers.forEach(m => m.setMap(null));
+  crmMarkers = [];
+  if (!map) return;
+
+  crmLeads.filter(l => l.lat && l.lng).forEach(lead => {
+    const fs = getFollowUpStatus(lead);
+    const marker = new google.maps.Marker({
+      position: { lat: lead.lat, lng: lead.lng },
+      map,
+      title: lead.name + ' (CRM)',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 9,
+        fillColor: fs.color,
+        fillOpacity: 0.9,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      },
+      zIndex: 200,
+    });
+
+    marker.addListener('click', () => {
+      sharedInfoWindow.setContent(`
+        <div style="font-family:'DM Sans',sans-serif;padding:4px;min-width:180px">
+          <div style="font-weight:600;font-size:13px;margin-bottom:2px;color:#1a1a1a">${lead.name}</div>
+          <div style="font-size:11px;color:#555;margin-bottom:6px">${lead.address || ''}</div>
+          <div style="display:inline-block;background:${fs.color}22;color:${fs.color};border:1px solid ${fs.color}44;border-radius:4px;padding:2px 7px;font-size:11px">📊 CRM: ${fs.label}</div>
+        </div>`);
+      sharedInfoWindow.open(map, marker);
+    });
+    crmMarkers.push(marker);
+  });
 }
 
 function renderMap() {
   window._mapsReady = true;
   const mapDiv = document.getElementById('mainMap');
   mapDiv.innerHTML = '';
-  mapDiv.style.height = '580px';
 
   const leadsWithCoords = allLeads.filter(l => l.lat && l.lng);
   if (!leadsWithCoords.length) {
@@ -1163,22 +1283,11 @@ function renderMap() {
 
   const center = { lat: leadsWithCoords[0].lat, lng: leadsWithCoords[0].lng };
 
-  // Always create a fresh map instance when leads change
   map = new google.maps.Map(mapDiv, {
     center,
     zoom: 13,
     mapTypeId: 'roadmap',
-    styles: [
-      { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
-      { elementType: 'labels.text.fill', stylers: [{ color: '#8888aa' }] },
-      { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
-      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2d2d44' }] },
-      { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1a1a2e' }] },
-      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1117' }] },
-      { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#1e1e2e' }] },
-      { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#1e1e2e' }] },
-      { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#e8ff47' }, { weight: 1.5 }] },
-    ],
+    styles: getDarkMapStyles(),
     zoomControl: true,
     mapTypeControl: false,
     streetViewControl: false,
@@ -1187,9 +1296,10 @@ function renderMap() {
 
   sharedInfoWindow = new google.maps.InfoWindow();
   placeMarkers();
+  placeCRMMarkers();  // overlay CRM pins on top of search results
   renderMapList();
   fitMapToBounds(leadsWithCoords);
-  document.getElementById('mapSubtitle').textContent = leadsWithCoords.length + ' laundromats — click a pin or name to see details';
+  document.getElementById('mapSubtitle').textContent = leadsWithCoords.length + ' new leads · ' + crmLeads.filter(l=>l.lat&&l.lng).length + ' CRM locations';
 }
 
 function buildMarkerIcon(status, isHighlighted) {
@@ -1296,7 +1406,7 @@ function highlightListItem(idx) {
 }
 
 function renderMapList() {
-  const listEl = document.getElementById('mapLeadList');
+  const listEl = document.getElementById('leadsList');
   const leadsWithCoords = allLeads.filter(l => l.lat && l.lng);
   if (!leadsWithCoords.length) {
     listEl.innerHTML = '<div class="map-empty" style="height:100%"><span>No leads with location data</span></div>';
@@ -1330,7 +1440,7 @@ function refreshMapMarkers() {
     markers[i].setIcon(buildMarkerIcon(statuses[lead.id] || 'none', i === activeMarkerIndex));
   });
   // Also re-render the list to update status dots
-  if (document.getElementById('page-map').classList.contains('active')) renderMapList();
+  if (document.getElementById('page-search').classList.contains('active')) renderMapList();
 }
 
 function fitMapToBounds(leads) {
@@ -1367,8 +1477,8 @@ async function runSearch() {
     markers = [];
     activeMarkerIndex = null;
     renderLeads();
-    // If map tab is already open, trigger render
-    if (document.getElementById('tab-map').classList.contains('active')) initMapView();
+    // Switch to split view with map
+    showSplitView();
   } catch (err) {
     document.getElementById('leadsList').innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Search failed</div><div class="empty-sub">${err.message}</div></div>`;
   } finally {
@@ -1475,7 +1585,7 @@ async function refreshCRM() {
   crmLeads = data.leads || [];
   renderCRMList();
   renderCRMSummary();
-  if (activeCrmLeadId) {
+  if (map) placeCRMMarkers();
     const lead = crmLeads.find(l => l.id === activeCrmLeadId);
     if (lead) renderCRMDetail(lead);
   }
@@ -2252,8 +2362,23 @@ async function submitLogin() {
 }
 
 function initApp() {
-  // Boot the app now that we're authenticated
+  // Boot on CRM tab (default)
   initCRM();
+  // Pre-load the maps API key so the map is ready when user clicks Find Leads
+  preloadMapsKey();
+}
+
+async function preloadMapsKey() {
+  if (googleMapsKey) return;
+  try {
+    const res = await fetch('/api/mapskey', { headers: authHeaders() });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.key) {
+      googleMapsKey = data.key;
+      loadMapsApi();
+    }
+  } catch(e) { /* silent fail */ }
 }
 
 // Enter key on city search input (elements above this script are already in DOM)

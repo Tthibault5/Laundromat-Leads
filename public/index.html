@@ -2072,7 +2072,7 @@ function printCRMMailers() {
   setTimeout(() => { printWin.print(); printWin.close(); }, 400);
 }
 
-document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+// cityIn enter key — moved into DOMContentLoaded below
 
 // ── LLC / OWNER LOOKUP ──────────────────────────────────────────────
 let currentLLCLeadId = null;
@@ -2183,16 +2183,7 @@ function getLLCData(leadId) {
   try { return JSON.parse(localStorage.getItem('leadLLC') || '{}')[leadId] || null; } catch { return null; }
 }
 
-// Close modal when clicking outside
-document.getElementById('llcModal').addEventListener('click', e => {
-  if (e.target === document.getElementById('llcModal')) closeLLCModal();
-});
-
-document.getElementById('batchTouchModal').addEventListener('click', e => {
-  if (e.target === document.getElementById('batchTouchModal')) closeBatchTouchModal();
-});
-
-document.getElementById('mailerModal').addEventListener('click', e => { if (e.target === document.getElementById('mailerModal')) closeMailerModal(); });
+// Modal outside-click handlers moved into DOMContentLoaded below
 
 // Init
 updateSavedUI();
@@ -2253,6 +2244,21 @@ function initApp() {
 
 // On page load: skip login if session token already exists
 window.addEventListener('DOMContentLoaded', () => {
+  // Enter key on city search input
+  document.getElementById('cityIn').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+
+  // Wire up modal outside-click handlers now that DOM is ready
+  document.getElementById('llcModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('llcModal')) closeLLCModal();
+  });
+  document.getElementById('batchTouchModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('batchTouchModal')) closeBatchTouchModal();
+  });
+  document.getElementById('mailerModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('mailerModal')) closeMailerModal();
+  });
+
+  // Skip login if session token already exists
   if (getToken()) {
     document.getElementById('loginScreen').classList.add('hidden');
     initApp();

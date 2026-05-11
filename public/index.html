@@ -1122,8 +1122,10 @@ let mapsApiLoaded = false;
 let sharedInfoWindow = null;
 
 function loadMapsApi() {
-  if (mapsApiLoaded || window._mapsReady || document.getElementById('gmaps-script')) return;
   if (!googleMapsKey) { console.warn('Maps key not yet available'); return; }
+  // Remove stale script tag if it exists (allows retry after failure)
+  const existing = document.getElementById('gmaps-script');
+  if (existing) existing.remove();
   mapsApiLoaded = true;
   const script = document.createElement('script');
   script.id = 'gmaps-script';
@@ -1146,31 +1148,46 @@ function initFindLeadsMap() {
   }
 }
 
+// Shared helper: loads Maps API if needed, then calls cb once ready
+function waitForMapsAndRun(cb) {
+  // Reset any stale failed state so we can retry
+  mapsApiLoaded = false;
+  window._mapsReady = false;
+  window._mapsReadyCb = cb;
+  loadMapsApi();
+  let attempts = 0;
+  const poll = setInterval(() => {
+    attempts++;
+    if (typeof google !== 'undefined' && google.maps) {
+      clearInterval(poll);
+      window._mapsReady = true;
+      cb();
+    }
+    if (attempts > 30) {
+      clearInterval(poll);
+      document.getElementById('mainMap').innerHTML = '<div class="map-empty"><span>⚠️</span><span>Map failed to load — check Google Maps API key</span></div>';
+    }
+  }, 500);
+}
+
 function showPresearchMap() {
-  // Full-width map with only CRM pins
-  const content = document.getElementById('findLeadsContent');
-  content.className = 'find-leads-presearch';
+  const contentEl = document.getElementById('findLeadsContent');
+  contentEl.className = 'find-leads-presearch';
   document.getElementById('findLeadsList').style.display = 'none';
 
-  // If we don't have the key yet, show a placeholder and let preloadMapsKey trigger us when ready
   if (!googleMapsKey) {
     document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
     document.getElementById('mapSubtitle').textContent = 'Loading map...';
     return;
   }
 
-  if (window._mapsReady && typeof google !== 'undefined') {
+  document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
+
+  if (window._mapsReady && typeof google !== 'undefined' && google.maps) {
     renderPresearchMap();
     return;
   }
-  window._mapsReadyCb = renderPresearchMap;
-  loadMapsApi();
-  let attempts = 0;
-  const poll = setInterval(() => {
-    attempts++;
-    if (typeof google !== 'undefined' && google.maps) { clearInterval(poll); window._mapsReady = true; renderPresearchMap(); }
-    if (attempts > 20) { clearInterval(poll); document.getElementById('mainMap').innerHTML = '<div class="map-empty"><span>⚠️</span><span>Map failed to load</span></div>'; }
-  }, 500);
+  waitForMapsAndRun(renderPresearchMap);
 }
 
 function renderPresearchMap() {
@@ -1208,21 +1225,13 @@ function showSplitView() {
   contentEl.className = 'find-leads-postsearch';
   document.getElementById('findLeadsList').style.display = 'block';
   document.getElementById('resultsBar').style.display = '';
-
   document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
 
-  if (window._mapsReady && typeof google !== 'undefined') {
+  if (window._mapsReady && typeof google !== 'undefined' && google.maps) {
     renderMap();
     return;
   }
-  window._mapsReadyCb = renderMap;
-  loadMapsApi();
-  let attempts = 0;
-  const poll = setInterval(() => {
-    attempts++;
-    if (typeof google !== 'undefined' && google.maps) { clearInterval(poll); window._mapsReady = true; renderMap(); }
-    if (attempts > 20) { clearInterval(poll); document.getElementById('mainMap').innerHTML = '<div class="map-empty"><span>⚠️</span><span>Map failed to load</span></div>'; }
-  }, 500);
+  waitForMapsAndRun(renderMap);
 }
 
 // Legacy alias — kept for any existing callers
@@ -2385,8 +2394,7 @@ async function preloadMapsKey() {
     const data = await res.json();
     if (data.key) {
       googleMapsKey = data.key;
-      loadMapsApi();
-      // If user is already on Find Leads tab, render the map now that we have the key
+      // Only trigger map render if user is already on Find Leads tab
       if (document.getElementById('page-search').classList.contains('active')) {
         showPresearchMap();
       }

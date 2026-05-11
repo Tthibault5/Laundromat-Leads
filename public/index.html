@@ -2242,7 +2242,7 @@ async function submitLogin() {
       return;
     }
     sessionStorage.setItem(SESSION_KEY, data.token);
-    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('loginScreen').style.display = 'none';
     initApp();
   } catch (e) {
     errEl.textContent = 'Connection error — try again';

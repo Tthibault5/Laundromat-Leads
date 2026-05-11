@@ -2231,11 +2231,7 @@ async function submitLogin() {
   errEl.textContent = '';
 
   try {
-    const res = await fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pw })
-    });
+    const res = await fetch('/api/auth?p=' + encodeURIComponent(pw));
     const data = await res.json();
     if (!res.ok) {
       errEl.textContent = data.error || 'Incorrect password';

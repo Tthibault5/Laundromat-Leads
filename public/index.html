@@ -345,6 +345,20 @@
     .template-fields { grid-template-columns: 1fr; }
     .saved-header { flex-direction: column; gap: 14px; }
   }
+
+  /* ── LOGIN SCREEN ─────────────────────────────────────────── */
+  #loginScreen { position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px; }
+  #loginScreen.hidden { display:none; }
+  .login-card { background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:40px 36px;width:100%;max-width:360px;text-align:center; }
+  .login-logo { font-size:32px;margin-bottom:8px; }
+  .login-title { font-size:18px;font-weight:600;margin-bottom:4px; }
+  .login-sub { font-size:13px;color:var(--text2);margin-bottom:28px; }
+  .login-input { width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;font-size:14px;color:var(--text1);font-family:'DM Sans',sans-serif;margin-bottom:12px;box-sizing:border-box;text-align:center;letter-spacing:.1em; }
+  .login-input:focus { outline:none;border-color:var(--accent); }
+  .login-btn { width:100%;padding:12px;background:var(--accent);color:#0a0a0a;font-weight:600;font-size:14px;border:none;border-radius:8px;cursor:pointer;font-family:'DM Sans',sans-serif; }
+  .login-btn:hover { opacity:.9; }
+  .login-btn:disabled { opacity:.5;cursor:not-allowed; }
+  .login-error { font-size:12px;color:#ff6b6b;margin-top:8px;min-height:18px; }
 </style>
 <script>
   // Google Maps loaded dynamically after search so we have the API key available
@@ -1317,7 +1331,7 @@ async function runSearch() {
   document.getElementById('summaryRow').style.display = 'none';
   document.getElementById('resultsBar').style.display = 'none';
   try {
-    const res = await fetch(`/api/places?location=${encodeURIComponent(city)}`);
+    const res = await fetch(`/api/places?location=${encodeURIComponent(city)}`, { headers: authHeaders() });
     if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'API error ' + res.status); }
     const data = await res.json();
     allLeads = (data.leads || []).map((l, i) => {
@@ -1421,7 +1435,7 @@ const SENTIMENTS = [
 ];
 
 async function crmFetch(action, body = null) {
-  const opts = { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' } };
+  const opts = { method: body ? 'POST' : 'GET', headers: authHeaders() };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(`/api/crm?action=${action}`, opts);
   if (!res.ok) { const e = await res.json(); throw new Error(e.error || 'API error'); }
@@ -2071,7 +2085,7 @@ async function openLLCModal(leadId, address, name) {
 
   try {
     const params = new URLSearchParams({ address, name });
-    const res = await fetch('/api/owner?' + params.toString());
+    const res = await fetch('/api/owner?' + params.toString(), { headers: authHeaders() });
     const text = await res.text();
     let data;
     try {
@@ -2182,6 +2196,70 @@ document.getElementById('mailerModal').addEventListener('click', e => { if (e.ta
 
 // Init
 updateSavedUI();
+
+// ── AUTHENTICATION ───────────────────────────────────────────────────
+const SESSION_KEY = 'llapp_token';
+
+function getToken() {
+  return sessionStorage.getItem(SESSION_KEY);
+}
+
+function authHeaders(extra = {}) {
+  const token = getToken();
+  const headers = { 'Content-Type': 'application/json', ...extra };
+  if (token) headers['x-app-key'] = token;
+  return headers;
+}
+
+async function submitLogin() {
+  const pw = document.getElementById('loginPassword').value.trim();
+  const errEl = document.getElementById('loginError');
+  const btn = document.getElementById('loginBtn');
+  if (!pw) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Checking...';
+  errEl.textContent = '';
+
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      errEl.textContent = data.error || 'Incorrect password';
+      btn.disabled = false;
+      btn.textContent = 'Unlock';
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginPassword').focus();
+      return;
+    }
+    sessionStorage.setItem(SESSION_KEY, data.token);
+    document.getElementById('loginScreen').classList.add('hidden');
+    initApp();
+  } catch (e) {
+    errEl.textContent = 'Connection error — try again';
+    btn.disabled = false;
+    btn.textContent = 'Unlock';
+  }
+}
+
+function initApp() {
+  // Boot the app now that we're authenticated
+  initCRM();
+}
+
+// On page load: skip login if session token already exists
+window.addEventListener('DOMContentLoaded', () => {
+  if (getToken()) {
+    document.getElementById('loginScreen').classList.add('hidden');
+    initApp();
+  }
+  // Otherwise the login screen stays visible — user must log in
+});
+
 </script>
 
 <!-- BATCH TOUCHPOINT MODAL -->

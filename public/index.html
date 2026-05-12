@@ -923,7 +923,7 @@ function renderLeadCard(l, fromSaved = false) {
     <div class="lead-body" ${clickFn ? `onclick="${clickFn}" style="cursor:pointer"` : ''}>
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <div class="lead-name">${l.name}</div>
-        ${!fromSaved && crmLeads.some(c => c.name === l.name || c.id === l.id) ? '<span style="font-size:10px;background:rgba(232,255,71,0.15);color:var(--accent);border:1px solid rgba(232,255,71,0.3);border-radius:4px;padding:1px 6px;font-family:DM Mono,monospace">In CRM</span>' : ''}
+        ${!fromSaved && crmLeads.some(c => c.id === l.id || (c.name === l.name && c.address === l.address)) ? '<span style="font-size:10px;background:rgba(232,255,71,0.15);color:var(--accent);border:1px solid rgba(232,255,71,0.3);border-radius:4px;padding:1px 6px;font-family:DM Mono,monospace">In CRM</span>' : ''}
       </div>
       <div class="lead-addr">${l.address || 'Address unavailable'}</div>
       ${l.photos && l.photos.length > 0

@@ -48,7 +48,7 @@ export default async function handler(req, res) {
 
           const negativeReviews = (d.reviews || [])
             .filter(r => r.rating <= 3 && r.text && r.text.trim().length > 15)
-            .map(r => ({ text: r.text.slice(0, 200), author: r.author_name || 'Anonymous' }))
+            .map(r => ({ text: r.text.slice(0, 200), author: r.author_name || 'Anonymous', time: r.time || null }))
             .slice(0, 5);
 
           const hasOwnerResponses = (d.reviews || []).some(r => r.owner_answer);

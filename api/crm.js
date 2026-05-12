@@ -63,6 +63,7 @@ export default async function handler(req, res) {
           lng: lead.lng || null,
           photos: lead.photos || [],
           reviews: lead.reviews || [],
+          llc_address: lead.llcAddress || null,
         }, { onConflict: 'id' });
       if (error) throw error;
       return res.status(200).json({ success: true });

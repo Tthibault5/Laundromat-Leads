@@ -902,7 +902,10 @@ function renderLeadCard(l, fromSaved = false) {
   const saved = isSaved(l.id);
   const expanded = expandedIds.has(l.id);
   const badges = getBadges(l).map(b => `<span class="badge ${b.c}">${b.t}</span>`).join('');
-  const reviews = (l.reviews || []).map(r => `<div class="snippet-item">"${r.text}" <span style="color:var(--text3)">— ${r.author}</span></div>`).join('');
+  const reviews = (l.reviews || []).map(r => {
+    const dateStr = r.time ? new Date(r.time * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : '';
+    return `<div class="snippet-item">\"${r.text}\" <span style="color:var(--text3)">— ${r.author}${dateStr ? ' · ' + dateStr : ''}</span></div>`;
+  }).join('');
   const registryUrl = getRegistryUrl(l);
   const dataAttr = `data-lead='${JSON.stringify(l).replace(/'/g, "&#39;")}'`;
   const isSearchSelected = !fromSaved && selectedLeadIds.has(l.id);
@@ -949,7 +952,6 @@ function renderLeadCard(l, fromSaved = false) {
     <div class="lead-actions">
       <button class="btn-action ${saved ? 'btn-saved' : ''}" ${dataAttr} onclick="toggleSave(JSON.parse(this.dataset.lead))">${saved ? '✓ Saved' : 'Save'}</button>
       ${reviews ? `<button class="btn-action" onclick="toggleExpand('${l.id}')">${expanded ? 'Hide' : 'Reviews'}</button>` : ''}
-      <a href="${registryUrl}" target="_blank"><button class="btn-action btn-registry">Registry ↗</button></a>
       <button class="btn-llc" onclick="openLLCModal('${l.id}', '${(l.address||'').replace(/'/g,'')}', '${(l.name||'').replace(/'/g,'')}')">🏢 Find LLC</button>
       ${fromSaved ? `<button class="btn-action" style="color:var(--red);border-color:rgba(255,79,79,0.3)" onclick="unsaveLead('${l.id}')">Remove</button>` : ''}
     </div>

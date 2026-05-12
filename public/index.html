@@ -711,8 +711,6 @@ function saveLeadData(lead) {
   const saved = getSaved();
   if (!saved.some(l => l.id === lead.id)) { saved.push(lead); setSaved(saved); }
   updateSavedUI();
-  // Also sync to Supabase for cross-device persistence and CRM
-  crmFetch('save_lead', lead).catch(e => console.warn('Supabase sync failed:', e.message));
 }
 function unsaveLead(id) {
   setSaved(getSaved().filter(l => l.id !== id));
@@ -1034,20 +1032,7 @@ async function moveSelectedToCRM() {
   const errors = [];
   for (const lead of toMove) {
     try {
-      await crmFetch('add_lead', {
-        place_id: lead.id,
-        name: lead.name,
-        address: lead.address || '',
-        phone: lead.phone || '',
-        website: lead.website || '',
-        rating: lead.rating || null,
-        review_count: lead.reviewCount || 0,
-        lat: lead.lat || null,
-        lng: lead.lng || null,
-        desirability_score: lead.desirabilityScore || 0,
-        distress_score: lead.distressScore || 0,
-        density_score: lead.densityScore || 0,
-      });
+      await crmFetch('save_lead', lead);
       added++;
       btn.textContent = `Adding ${added} / ${toMove.length}...`;
     } catch(e) {
@@ -1147,15 +1132,7 @@ async function moveConfirmedToCRM() {
   const errors = [];
   for (const lead of confirmed) {
     try {
-      await crmFetch('add_lead', {
-        place_id: lead.id, name: lead.name, address: lead.address || '',
-        phone: lead.phone || '', website: lead.website || '',
-        rating: lead.rating || null, review_count: lead.reviewCount || 0,
-        lat: lead.lat || null, lng: lead.lng || null,
-        desirability_score: lead.desirabilityScore || 0,
-        distress_score: lead.distressScore || 0,
-        density_score: lead.densityScore || 0,
-      });
+      await crmFetch('save_lead', lead);
       added++;
       btn.textContent = `Adding ${added} / ${confirmed.length}...`;
     } catch(e) { errors.push(lead.name + ': ' + e.message); }

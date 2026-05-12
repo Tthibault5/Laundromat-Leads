@@ -390,6 +390,20 @@
   .lead-selection-bar { display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;flex-wrap:wrap; }
   .lead-sel-count { font-size:11px;font-family:'DM Mono',monospace;color:var(--text2);flex:1; }
   .lead-sel-count span { color:var(--accent);font-weight:600; }
+
+  /* ── SAVED LEAD VERIFICATION ────────────────────────────────── */
+  .lead-card.verified   { border-color: rgba(67,160,71,0.5) !important; background: rgba(67,160,71,0.04); }
+  .lead-card.flagged    { border-color: rgba(255,79,79,0.4) !important; background: rgba(255,79,79,0.04); }
+  .verify-badge         { font-size:10px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;border:1px solid;display:inline-block; }
+  .verify-badge.unverified { background:rgba(150,150,150,0.1);color:var(--text3);border-color:var(--border2); }
+  .verify-badge.verified   { background:rgba(67,160,71,0.15);color:#43A047;border-color:rgba(67,160,71,0.3); }
+  .verify-badge.flagged    { background:rgba(255,79,79,0.15);color:#ff6b6b;border-color:rgba(255,79,79,0.3); }
+  .btn-streetview { font-size:11px;padding:5px 9px;background:transparent;border:1px solid rgba(30,136,229,0.4);border-radius:6px;color:#1E88E5;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap; }
+  .btn-streetview:hover { border-color:#1E88E5;background:rgba(30,136,229,0.08); }
+  .btn-verify { font-size:11px;padding:5px 9px;background:transparent;border:1px solid rgba(67,160,71,0.4);border-radius:6px;color:#43A047;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap; }
+  .btn-verify:hover { border-color:#43A047;background:rgba(67,160,71,0.08); }
+  .btn-flag { font-size:11px;padding:5px 9px;background:transparent;border:1px solid rgba(255,79,79,0.4);border-radius:6px;color:#ff6b6b;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap; }
+  .btn-flag:hover { border-color:#ff6b6b;background:rgba(255,79,79,0.08); }
 </style>
 <script>
   // Google Maps loaded dynamically after search so we have the API key available
@@ -598,7 +612,8 @@ Sincerely,</textarea>
       <div class="lead-sel-count" id="savedSelCount">No leads selected</div>
       <button class="btn-sel" onclick="savedSelectAll()">All</button>
       <button class="btn-sel" onclick="savedSelectNone()">None</button>
-      <button class="btn-sel" onclick="moveSelectedToCRM()" style="border-color:rgba(232,255,71,0.4);color:var(--accent)" id="moveToCRMBtn">Move to CRM</button>
+      <button class="btn-sel" onclick="moveConfirmedToCRM()" style="border-color:rgba(67,160,71,0.5);color:#43A047" id="moveConfirmedBtn">✓ Move Confirmed to CRM</button>
+      <button class="btn-sel" onclick="moveSelectedToCRM()" style="border-color:rgba(232,255,71,0.4);color:var(--accent)" id="moveToCRMBtn">Move Selected to CRM</button>
     </div>
     <div id="savedList"></div>
   </div>
@@ -914,7 +929,9 @@ function renderLeadCard(l, fromSaved = false) {
   const cbFn = fromSaved ? `toggleSavedSelection('${l.id}')` : `toggleLeadSelection('${l.id}')`;
   const leadIdx = !fromSaved ? allLeads.findIndex(x => x.id === l.id) : -1;
   const clickFn = (!fromSaved && leadIdx >= 0) ? `selectLead(${leadIdx}, 'list')` : '';
-  return `<div class="lead-card ${isSelected ? 'lead-selected' : ''}" id="lead-card-${l.id}">
+  const verifyState = fromSaved ? getVerification(l.id) : '';
+  const verifyClass = verifyState === 'verified' ? 'verified' : verifyState === 'flagged' ? 'flagged' : '';
+  return `<div class="lead-card ${isSelected ? 'lead-selected' : ''} ${verifyClass}" id="lead-card-${l.id}">
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:2px">
       <input type="checkbox" class="lead-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();${cbFn}" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0" />
     </div>
@@ -927,6 +944,7 @@ function renderLeadCard(l, fromSaved = false) {
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
         <div class="lead-name">${l.name}</div>
         ${!fromSaved && crmLeads.some(c => c.id === l.id || (c.name === l.name && c.address === l.address)) ? '<span style="font-size:10px;background:rgba(232,255,71,0.15);color:var(--accent);border:1px solid rgba(232,255,71,0.3);border-radius:4px;padding:1px 6px;font-family:DM Mono,monospace">In CRM</span>' : ''}
+        ${fromSaved ? (() => { const vs = getVerification(l.id); return vs === 'verified' ? '<span class="verify-badge verified">✓ Confirmed</span>' : vs === 'flagged' ? '<span class="verify-badge flagged">⚑ Flagged</span>' : '<span class="verify-badge unverified">Unverified</span>'; })() : ''}
       </div>
       <div class="lead-addr">${l.address || 'Address unavailable'}</div>
       ${l.photos && l.photos.length > 0
@@ -953,7 +971,11 @@ function renderLeadCard(l, fromSaved = false) {
       <button class="btn-action ${saved ? 'btn-saved' : ''}" ${dataAttr} onclick="toggleSave(JSON.parse(this.dataset.lead))">${saved ? '✓ Saved' : 'Save'}</button>
       ${reviews ? `<button class="btn-action" onclick="toggleExpand('${l.id}')">${expanded ? 'Hide' : 'Reviews'}</button>` : ''}
       <button class="btn-llc" onclick="openLLCModal('${l.id}', '${(l.address||'').replace(/'/g,'')}', '${(l.name||'').replace(/'/g,'')}')">🏢 Find LLC</button>
-      ${fromSaved ? `<button class="btn-action" style="color:var(--red);border-color:rgba(255,79,79,0.3)" onclick="unsaveLead('${l.id}')">Remove</button>` : ''}
+      ${fromSaved && l.lat && l.lng ? `<button class="btn-streetview" onclick="openStreetView(${l.lat}, ${l.lng})">🗺️ Street View</button>` : ''}
+      ${fromSaved ? `
+        <button class="btn-verify" onclick="setVerification('${l.id}', 'verified')">✓ Confirm</button>
+        <button class="btn-flag" onclick="setVerification('${l.id}', 'flagged')">⚑ Flag</button>
+        <button class="btn-action" style="color:var(--red);border-color:rgba(255,79,79,0.3)" onclick="unsaveLead('${l.id}')">Remove</button>` : ''}
     </div>
   </div>`;
 }
@@ -1043,8 +1065,12 @@ function updateSavedSelectionBar() {
   if (!saved.length) { bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   const n = selectedSavedIds.size;
-  countEl.innerHTML = n > 0 ? `<span>${n}</span> of ${saved.length} selected` : `${saved.length} leads — none selected`;
-  document.getElementById('moveToCRMBtn').textContent = n > 0 ? `Move to CRM (${n})` : `Move All to CRM (${saved.length})`;
+  const confirmedCount = saved.filter(l => getVerification(l.id) === 'verified').length;
+  const flaggedCount = saved.filter(l => getVerification(l.id) === 'flagged').length;
+  countEl.innerHTML = `${saved.length} saved · <span style="color:#43A047">${confirmedCount} confirmed</span> · <span style="color:#ff6b6b">${flaggedCount} flagged</span>${n > 0 ? ` · <span style="color:var(--accent)">${n} selected</span>` : ''}`;
+  const moveConfBtn = document.getElementById('moveConfirmedBtn');
+  if (moveConfBtn) moveConfBtn.textContent = confirmedCount > 0 ? `✓ Move Confirmed to CRM (${confirmedCount})` : '✓ Move Confirmed to CRM';
+  document.getElementById('moveToCRMBtn').textContent = n > 0 ? `Move Selected to CRM (${n})` : `Move All to CRM (${saved.length})`;
 }
 
 async function moveSelectedToCRM() {
@@ -1141,6 +1167,61 @@ function renderLeads() {
   }
   list.innerHTML = filtered.map(l => renderLeadCard(l)).join('');
   updateLeadsSelectionBar();
+}
+
+// ── LEAD VERIFICATION (Saved tab) ────────────────────────────────────
+function getVerifications() {
+  try { return JSON.parse(localStorage.getItem('leadVerifications') || '{}'); } catch { return {}; }
+}
+function getVerification(id) {
+  return getVerifications()[id] || 'unverified';
+}
+function setVerification(id, state) {
+  const v = getVerifications();
+  // Toggle off if clicking the same state
+  v[id] = v[id] === state ? 'unverified' : state;
+  localStorage.setItem('leadVerifications', JSON.stringify(v));
+  renderSaved();
+  updateSavedSelectionBar();
+}
+function openStreetView(lat, lng) {
+  window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`, '_blank');
+}
+async function moveConfirmedToCRM() {
+  const saved = getSaved();
+  const confirmed = saved.filter(l => getVerification(l.id) === 'verified');
+  if (!confirmed.length) {
+    alert('No confirmed leads yet. Use the ✓ Confirm button on leads you\'ve verified as laundromats.');
+    return;
+  }
+  const btn = document.getElementById('moveConfirmedBtn');
+  btn.disabled = true;
+  btn.textContent = `Adding 0 / ${confirmed.length}...`;
+  let added = 0;
+  const errors = [];
+  for (const lead of confirmed) {
+    try {
+      await crmFetch('add_lead', {
+        place_id: lead.id, name: lead.name, address: lead.address || '',
+        phone: lead.phone || '', website: lead.website || '',
+        rating: lead.rating || null, review_count: lead.reviewCount || 0,
+        lat: lead.lat || null, lng: lead.lng || null,
+        desirability_score: lead.desirabilityScore || 0,
+        distress_score: lead.distressScore || 0,
+        density_score: lead.densityScore || 0,
+      });
+      added++;
+      btn.textContent = `Adding ${added} / ${confirmed.length}...`;
+    } catch(e) { errors.push(lead.name + ': ' + e.message); }
+  }
+  btn.disabled = false;
+  if (errors.length) {
+    alert(`Added ${added} of ${confirmed.length} to CRM.\n\nErrors:\n` + errors.join('\n'));
+  } else {
+    btn.textContent = `✓ Added ${added} to CRM!`;
+    btn.style.color = '#43A047';
+    setTimeout(() => { updateSavedSelectionBar(); btn.style.color = ''; }, 2500);
+  }
 }
 
 function renderSaved() {

@@ -908,7 +908,15 @@ function renderLeadCard(l, fromSaved = false) {
         <select class="status-select" onchange="setStatus('${l.id}', this.value)">
           ${buildStatusOptions(l.id)}
         </select>
-      </div>` : ''}
+      </div>` : `<div style="margin-top:8px">
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">LLC / Mailing address</div>
+        <input type="text"
+          value="${getLLCAddress(l.id).replace(/"/g, '&quot;')}"
+          placeholder="Enter LLC address if found..."
+          onchange="saveLLCAddress('${l.id}', this.value)"
+          onclick="event.stopPropagation()"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:5px 9px;font-size:12px;color:var(--text1);font-family:'DM Mono',monospace;box-sizing:border-box" />
+      </div>`}
       ${reviews ? `<div class="snippet-box ${expanded ? 'open' : ''}">${reviews}</div>` : ''}
     </div>
     <div class="lead-actions">
@@ -1032,7 +1040,7 @@ async function moveSelectedToCRM() {
   const errors = [];
   for (const lead of toMove) {
     try {
-      await crmFetch('save_lead', lead);
+      await crmFetch('save_lead', { ...lead, llcAddress: getLLCAddress(lead.id) });
       added++;
       btn.textContent = `Adding ${added} / ${toMove.length}...`;
     } catch(e) {
@@ -1100,6 +1108,20 @@ function renderLeads() {
   updateLeadsSelectionBar();
 }
 
+// ── LLC ADDRESS STORAGE ──────────────────────────────────────────────
+function getLLCAddresses() {
+  try { return JSON.parse(localStorage.getItem('leadLLCAddresses') || '{}'); } catch { return {}; }
+}
+function getLLCAddress(id) {
+  return getLLCAddresses()[id] || '';
+}
+function saveLLCAddress(id, addr) {
+  const data = getLLCAddresses();
+  if (addr.trim()) data[id] = addr.trim();
+  else delete data[id];
+  localStorage.setItem('leadLLCAddresses', JSON.stringify(data));
+}
+
 // ── LEAD VERIFICATION (Saved tab) ────────────────────────────────────
 function getVerifications() {
   try { return JSON.parse(localStorage.getItem('leadVerifications') || '{}'); } catch { return {}; }
@@ -1132,7 +1154,7 @@ async function moveConfirmedToCRM() {
   const errors = [];
   for (const lead of confirmed) {
     try {
-      await crmFetch('save_lead', lead);
+      await crmFetch('save_lead', { ...lead, llcAddress: getLLCAddress(lead.id) });
       added++;
       btn.textContent = `Adding ${added} / ${confirmed.length}...`;
     } catch(e) { errors.push(lead.name + ': ' + e.message); }
@@ -2174,6 +2196,10 @@ function renderCRMDetail(lead) {
         <span>${lead.address || ''} ${lead.phone ? '· ' + lead.phone : ''}</span>
         <button class="btn-llc" onclick="openLLCModal('${lead.id}', '${(lead.address||'').replace(/'/g,'')}', '${(lead.name||'').replace(/'/g,'')}')">🏢 Find LLC / Owner</button>
       </div>
+      ${lead.llc_address ? `<div style="margin-bottom:12px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <span style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;flex-shrink:0">LLC address</span>
+        <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--teal)">${lead.llc_address}</span>
+      </div>` : ''}
       <div class="crm-scores">
         <div class="crm-score-chip" style="background:rgba(230,81,0,0.12)">
           <div class="crm-score-num" style="color:#e65100">${lead.desirability_score}</div>

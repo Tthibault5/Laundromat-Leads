@@ -682,6 +682,11 @@ Sincerely,</textarea>
       <div>
         <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Campaigns</div>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <!-- CRM search bar -->
+          <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg3)">
+            <input type="text" id="crmSearchInput" placeholder="Search campaigns..." oninput="renderCRMList()"
+              style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text1);font-family:'DM Sans',sans-serif;box-sizing:border-box" />
+          </div>
           <div class="crm-selection-bar" id="crmSelectionBar">
             <div class="crm-sel-count" id="crmSelCount">Select leads to act on them in bulk</div>
             <button class="btn-sel" onclick="crmSelectAll()">All</button>
@@ -904,17 +909,22 @@ function renderLeadCard(l, fromSaved = false) {
   const isSavedSelected = fromSaved && selectedSavedIds.has(l.id);
   const isSelected = isSearchSelected || isSavedSelected;
   const cbFn = fromSaved ? `toggleSavedSelection('${l.id}')` : `toggleLeadSelection('${l.id}')`;
+  const leadIdx = !fromSaved ? allLeads.findIndex(x => x.id === l.id) : -1;
+  const clickFn = (!fromSaved && leadIdx >= 0) ? `selectLead(${leadIdx}, 'list')` : '';
   return `<div class="lead-card ${isSelected ? 'lead-selected' : ''}" id="lead-card-${l.id}">
     <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:2px">
-      <input type="checkbox" class="lead-cb" ${isSelected ? 'checked' : ''} onclick="${cbFn}" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0" />
+      <input type="checkbox" class="lead-cb" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation();${cbFn}" style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0" />
     </div>
-    <div class="score-wrap">
+    <div class="score-wrap" ${clickFn ? `onclick="${clickFn}" style="cursor:pointer"` : ''}>
       <div class="score-pill ${desClass}"><span class="sc-num">${l.desirabilityScore}</span><span class="sc-sub">desire</span></div>
       <div class="score-pill ${dClass}"><span class="sc-num">${l.distressScore}</span><span class="sc-sub">distress</span></div>
       <div class="score-pill ${nClass}"><span class="sc-num">${l.densityScore}</span><span class="sc-sub">density</span></div>
     </div>
-    <div class="lead-body">
-      <div class="lead-name">${l.name}</div>
+    <div class="lead-body" ${clickFn ? `onclick="${clickFn}" style="cursor:pointer"` : ''}>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <div class="lead-name">${l.name}</div>
+        ${!fromSaved && crmLeads.some(c => c.name === l.name || c.id === l.id) ? '<span style="font-size:10px;background:rgba(232,255,71,0.15);color:var(--accent);border:1px solid rgba(232,255,71,0.3);border-radius:4px;padding:1px 6px;font-family:DM Mono,monospace">In CRM</span>' : ''}
+      </div>
       <div class="lead-addr">${l.address || 'Address unavailable'}</div>
       ${l.photos && l.photos.length > 0
         ? `<div class="photos-row">${l.photos.map(p => `<img src="${p}" alt="${l.name}" loading="lazy" onerror="this.style.display='none'">`).join('')}</div>`
@@ -1309,14 +1319,21 @@ function loadMapsApi() {
 }
 
 function initFindLeadsMap() {
-  // Called when switching to Find Leads tab
-  // If we have search results, show split view; otherwise show CRM-only map
   if (allLeads.length) {
-    showSplitView();
+    // Restore split layout without re-rendering map if it already exists
+    const contentEl = document.getElementById('findLeadsContent');
+    contentEl.className = 'find-leads-postsearch';
+    document.getElementById('findLeadsList').style.display = 'block';
+    document.getElementById('resultsBar').style.display = '';
+    renderLeads(); // re-render list (CRM badges may have changed)
+    if (!map) {
+      // Map was lost (e.g. first load) — re-render it
+      showSplitView();
+    }
+    // If map exists, just refresh CRM overlay pins
+    if (map) placeCRMMarkers();
   } else {
-    // Always show the presearch layout; showPresearchMap guards against missing key
     showPresearchMap();
-    // If key not loaded yet, kick off load now
     if (!googleMapsKey) preloadMapsKey();
   }
 }
@@ -1393,13 +1410,18 @@ function renderPresearchMap() {
 }
 
 function showSplitView() {
-  // 50/50 split: list left, map right
   const contentEl = document.getElementById('findLeadsContent');
   contentEl.className = 'find-leads-postsearch';
   document.getElementById('findLeadsList').style.display = 'block';
   document.getElementById('resultsBar').style.display = '';
-  document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
 
+  // Only wipe and re-render the map if there isn't one already
+  if (map && typeof google !== 'undefined' && google.maps) {
+    placeCRMMarkers();
+    return;
+  }
+
+  document.getElementById('mainMap').innerHTML = '<div class="map-empty"><div class="spinner"></div><div>Loading map...</div></div>';
   if (window._mapsReady && typeof google !== 'undefined' && google.maps) {
     renderMap();
     return;
@@ -1948,12 +1970,21 @@ function renderCRMList() {
     return;
   }
 
+  const query = (document.getElementById('crmSearchInput')?.value || '').toLowerCase().trim();
+
   // Sort: overdue first, then due-soon, then waiting, then responded/done
   const order = { overdue: 0, 'due-soon': 1, none: 2, waiting: 3, responded: 4, done: 5 };
-  const sorted = [...crmLeads].sort((a, b) => {
-    const sa = getFollowUpStatus(a), sb = getFollowUpStatus(b);
-    return (order[sa.status] ?? 3) - (order[sb.status] ?? 3);
-  });
+  const sorted = [...crmLeads]
+    .filter(l => !query || l.name.toLowerCase().includes(query) || (l.address || '').toLowerCase().includes(query))
+    .sort((a, b) => {
+      const sa = getFollowUpStatus(a), sb = getFollowUpStatus(b);
+      return (order[sa.status] ?? 3) - (order[sb.status] ?? 3);
+    });
+
+  if (!sorted.length) {
+    el.innerHTML = `<div class="crm-empty">No campaigns match "${query}"</div>`;
+    return;
+  }
 
   el.innerHTML = sorted.map(lead => {
     const fs = getFollowUpStatus(lead);

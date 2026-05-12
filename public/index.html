@@ -555,57 +555,7 @@
       </div>
       <div class="saved-actions">
         <button class="btn-outline" onclick="exportSavedCSV()">Export CSV ↓</button>
-        <button class="btn-mailer" id="generateMailersBtn" onclick="openMailerModal()" disabled>✉️ Generate Mailers</button>
       </div>
-    </div>
-
-    <!-- MAILER TEMPLATE EDITOR -->
-    <div class="template-section" id="templateSection" style="display:none">
-      <div class="template-title">✉️ Mailer Template</div>
-      <div class="template-sub">Customize your letter. Use tokens: <code style="color:var(--accent);font-size:11px">{business_name}</code> <code style="color:var(--accent);font-size:11px">{business_address}</code> <code style="color:var(--accent);font-size:11px">{city}</code></div>
-      <div class="template-fields">
-        <div class="field-group">
-          <div class="field-label">Your name</div>
-          <input type="text" class="field-input" id="senderName" value="Tommy Thibault" />
-        </div>
-        <div class="field-group">
-          <div class="field-label">Your company</div>
-          <input type="text" class="field-input" id="senderCompany" value="" placeholder="Optional" />
-        </div>
-        <div class="field-group">
-          <div class="field-label">Your address line 1</div>
-          <input type="text" class="field-input" id="senderAddr1" value="180 Heath Street, Unit 1" />
-        </div>
-        <div class="field-group">
-          <div class="field-label">Your city, state, zip</div>
-          <input type="text" class="field-input" id="senderAddr2" value="Jamaica Plain, MA 02130" />
-        </div>
-        <div class="field-group">
-          <div class="field-label">Your phone</div>
-          <input type="text" class="field-input" id="senderPhone" value="(203) 461-5119" />
-        </div>
-        <div class="field-group">
-          <div class="field-label">Your email</div>
-          <input type="text" class="field-input" id="senderEmail" value="Tthibault5@outlook.com" />
-        </div>
-      </div>
-      <div class="field-group" style="margin-bottom:10px">
-        <div class="field-label">Letter body</div>
-        <textarea class="field-textarea" id="letterBody">Hello {business_name},
-
-My name is Tommy Thibault. I am a small time investor in Connecticut looking to acquire and operate a laundromat in the area long-term.
-
-I came across your location and wanted to reach out directly. If you have ever considered selling, retiring, partnering, or stepping back from day-to-day operations, I would welcome a confidential conversation.
-
-I understand timing matters, and there is absolutely no pressure. If now is not the right time, I would still be glad to connect for the future.
-
-You can reach me directly at (203) 461-5119 or Tthibault5@outlook.com.
-
-Thank you for your time.
-
-Sincerely,</textarea>
-      </div>
-      <div class="token-hint">Tokens auto-replaced: {business_name} {business_address} {city} {sender_name} {sender_company} {sender_phone} {sender_email}</div>
     </div>
 
     <div id="savedSelectionBar" class="lead-selection-bar" style="display:none">
@@ -777,12 +727,8 @@ function updateSavedUI() {
   document.getElementById('savedPillCount').textContent = count;
   pill.style.display = count > 0 ? 'block' : 'none';
   tabCount.textContent = count > 0 ? `(${count})` : '';
-  const btn = document.getElementById('generateMailersBtn');
-  if (btn) btn.disabled = count === 0;
-  const tpl = document.getElementById('templateSection');
-  if (tpl) tpl.style.display = count > 0 ? 'block' : 'none';
   const sub = document.getElementById('savedSubtitle');
-  if (sub) sub.textContent = count > 0 ? `${count} lead${count !== 1 ? 's' : ''} saved — customize your mailer template below, then generate print-ready letters` : 'No leads saved yet — find and save leads from the search tab';
+  if (sub) sub.textContent = count > 0 ? `${count} lead${count !== 1 ? 's' : ''} saved — verify each lead, then move confirmed ones to CRM` : 'No leads saved yet — find and save leads from the search tab';
 }
 
 function switchTab(tab) {
@@ -959,12 +905,12 @@ function renderLeadCard(l, fromSaved = false) {
         ${l.phone ? `<span>${l.phone}</span>` : ''}
         ${l.website ? `<a href="${l.website}" target="_blank" style="color:var(--blue);text-decoration:none">website ↗</a>` : ''}
       </div>
-      <div class="status-row">
+      ${!fromSaved ? `<div class="status-row">
         <span class="status-dot" style="background:${STATUS_CONFIG[getStatus(l.id)].dot}"></span>
         <select class="status-select" onchange="setStatus('${l.id}', this.value)">
-          ${Object.entries(STATUS_CONFIG).map(([val,cfg]) => `<option value="${val}" ${getStatus(l.id)===val?'selected':''}>${cfg.label}</option>`).join('')}
+          ${buildStatusOptions(l.id)}
         </select>
-      </div>
+      </div>` : ''}
       ${reviews ? `<div class="snippet-box ${expanded ? 'open' : ''}">${reviews}</div>` : ''}
     </div>
     <div class="lead-actions">
@@ -1377,6 +1323,11 @@ function setStatus(id, status) {
   if (document.getElementById('page-saved').classList.contains('active')) renderSaved();
 }
 function getStatus(id) { return getStatuses()[id] || 'none'; }
+function buildStatusOptions(id) {
+  return Object.entries(STATUS_CONFIG).map(([val, cfg]) =>
+    `<option value="${val}" ${getStatus(id) === val ? 'selected' : ''}>${cfg.label}</option>`
+  ).join('');
+}
 
 // ── MAP ────────────────────────────────────────────────────────────
 let map = null;

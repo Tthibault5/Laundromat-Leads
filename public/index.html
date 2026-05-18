@@ -605,10 +605,10 @@
     <div id="oppGapControls" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
       <div style="font-size:12px;color:var(--text2);font-family:'DM Mono',monospace">Search radius:</div>
       <div style="display:flex;gap:6px">
-        <button class="opp-radius-btn active" data-miles="3" onclick="setOppRadius(3)">3 mi</button>
+        <button class="opp-radius-btn active" data-miles="1" onclick="setOppRadius(1)">1 mi</button>
+        <button class="opp-radius-btn" data-miles="2" onclick="setOppRadius(2)">2 mi</button>
+        <button class="opp-radius-btn" data-miles="3" onclick="setOppRadius(3)">3 mi</button>
         <button class="opp-radius-btn" data-miles="5" onclick="setOppRadius(5)">5 mi</button>
-        <button class="opp-radius-btn" data-miles="10" onclick="setOppRadius(10)">10 mi</button>
-        <button class="opp-radius-btn" data-miles="15" onclick="setOppRadius(15)">15 mi</button>
       </div>
       <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:8px">
         🌡️ Hot = high population, few laundromats &nbsp;·&nbsp; ❄️ Cool = well served
@@ -2820,7 +2820,7 @@ let oppMap = null;
 let oppHeatmap = null;
 let oppMarkers = [];
 let oppMode = 'gaps';
-let oppRadius = 3; // miles
+let oppRadius = 1; // miles
 let oppSearchResults = null;
 
 function setOppMode(mode) {
@@ -2962,7 +2962,7 @@ async function renderOppResults() {
 
   if (oppSearchResults.center) {
     oppMap.setCenter(oppSearchResults.center);
-    oppMap.setZoom(oppRadius <= 3 ? 13 : oppRadius <= 5 ? 12 : oppRadius <= 10 ? 11 : 10);
+    oppMap.setZoom(oppRadius <= 1 ? 15 : oppRadius <= 2 ? 14 : oppRadius <= 3 ? 13 : 12);
   }
 
   if (oppMode === 'gaps') {
@@ -3022,14 +3022,15 @@ function renderGapHeatmap(leads) {
   const center = oppSearchResults.center || { lat: leadsWithCoords[0].lat, lng: leadsWithCoords[0].lng };
   const radiusDeg = (oppRadius * 1.609) / 111;
 
-  // Scale grid density with radius: 3mi=30, 5mi=36, 10mi=44, 15mi=50
-  const gridSize = Math.round(20 + oppRadius * 2);
+  // Dense grid: 50x50 regardless of radius (max 5mi so this is fine performance-wise)
+  const gridSize = 50;
 
-  // Scale the "nearby" check radius proportionally with search radius
-  const coverageCheckMiles = Math.max(0.5, oppRadius * 0.15);
-  const densityCheckMiles  = Math.max(1.0, oppRadius * 0.25);
+  // Coverage check: how close does a laundromat need to be to "serve" this point
+  const coverageCheckMiles = Math.max(0.3, oppRadius * 0.2);
+  const densityCheckMiles  = Math.max(0.5, oppRadius * 0.35);
 
   const heatData = [];
+  let maxWeight = 0;
 
   for (let i = 0; i <= gridSize; i++) {
     for (let j = 0; j <= gridSize; j++) {
@@ -3050,41 +3051,37 @@ function renderGapHeatmap(leads) {
         : 25;
 
       const densityNorm  = avgDensity / 100;
-      const coverageNorm = Math.min(nearbyCount / 3, 1);
-      const weight = Math.max(0, densityNorm - coverageNorm * 0.8);
-
-      if (weight > 0.05) {
+      const coverageNorm = Math.min(nearbyCount / 2, 1); // 2+ laundromats = covered
+      const weight = Math.max(0, densityNorm - coverageNorm * 0.9);
+      if (weight > 0) {
         heatData.push({ location: new google.maps.LatLng(lat, lng), weight });
+        if (weight > maxWeight) maxWeight = weight;
       }
     }
   }
 
-  // Pixel radius scales with zoom so blobs stay proportional when zooming in/out
-  const getPixelRadius = () => {
-    const zoom = oppMap.getZoom();
-    return Math.round(30 + (zoom - 8) * 5);
-  };
+  if (!heatData.length) return;
+
+  // Fixed small pixel radius — dense grid means no gaps, no circles
+  // Small radius = crisp; blends together because grid is fine enough
+  const PIXEL_RADIUS = 22;
 
   oppHeatmap = new google.maps.visualization.HeatmapLayer({
     data: heatData,
     map: oppMap,
-    radius: getPixelRadius(),
-    opacity: 0.72,
+    radius: PIXEL_RADIUS,
+    opacity: 0.75,
+    maxIntensity: maxWeight * 0.6,
     gradient: [
-      'rgba(0, 0, 255, 0)',
-      'rgba(0, 80, 255, 0.5)',
-      'rgba(0, 200, 255, 0.65)',
-      'rgba(0, 255, 120, 0.72)',
-      'rgba(180, 255, 0, 0.78)',
-      'rgba(255, 200, 0, 0.84)',
-      'rgba(255, 80, 0, 0.9)',
-      'rgba(255, 0, 0, 0.95)',
+      'rgba(0, 0, 180, 0)',
+      'rgba(0, 60, 255, 0.4)',
+      'rgba(0, 180, 255, 0.6)',
+      'rgba(0, 255, 140, 0.7)',
+      'rgba(160, 255, 0, 0.78)',
+      'rgba(255, 200, 0, 0.85)',
+      'rgba(255, 80, 0, 0.92)',
+      'rgba(255, 0, 0, 0.97)',
     ],
-  });
-
-  // Keep radius proportional as user zooms
-  oppMap.addListener('zoom_changed', () => {
-    if (oppHeatmap) oppHeatmap.set('radius', getPixelRadius());
   });
 }
 

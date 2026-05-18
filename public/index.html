@@ -404,6 +404,13 @@
   .btn-verify:hover { border-color:#43A047;background:rgba(67,160,71,0.08); }
   .btn-flag { font-size:11px;padding:5px 9px;background:transparent;border:1px solid rgba(255,79,79,0.4);border-radius:6px;color:#ff6b6b;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap; }
   .btn-flag:hover { border-color:#ff6b6b;background:rgba(255,79,79,0.08); }
+
+  /* ── OPPORTUNITIES TAB ──────────────────────────────────────── */
+  .opp-mode-btn { font-size:12px;font-family:'DM Sans',sans-serif;padding:6px 14px;border-radius:7px;border:none;background:transparent;color:var(--text2);cursor:pointer;transition:all .15s; }
+  .opp-mode-btn.active { background:var(--bg2);color:var(--text1);font-weight:500;box-shadow:0 1px 4px rgba(0,0,0,.3); }
+  .opp-radius-btn { font-size:11px;font-family:'DM Mono',monospace;padding:4px 10px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s; }
+  .opp-radius-btn.active { border-color:rgba(232,255,71,0.5);color:var(--accent);background:rgba(232,255,71,0.08); }
+  .opp-radius-btn:hover { border-color:var(--accent);color:var(--accent); }
 </style>
 <script>
   // Google Maps loaded dynamically after search so we have the API key available
@@ -449,6 +456,7 @@
     <button class="tab active" id="tab-crm" onclick="switchTab('crm')">📊 CRM</button>
     <button class="tab" id="tab-search" onclick="switchTab('search')">🔍 Find Leads</button>
     <button class="tab" id="tab-saved" onclick="switchTab('saved')">📋 Saved Leads <span id="tabSavedCount" style="font-size:11px;color:var(--text3)"></span></button>
+    <button class="tab" id="tab-opportunities" onclick="switchTab('opportunities')">🏢 Opportunities</button>
   </div>
 
   <!-- FIND LEADS PAGE (merged search + map) -->
@@ -567,6 +575,81 @@
       <button class="btn-sel" onclick="moveSelectedToCRM()" style="border-color:rgba(232,255,71,0.4);color:var(--accent)" id="moveToCRMBtn">Move Selected to CRM</button>
     </div>
     <div id="savedList"></div>
+  </div>
+
+  <!-- OPPORTUNITIES PAGE -->
+  <div class="page" id="page-opportunities">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:20px;font-weight:600;margin-bottom:4px">Opportunities</div>
+        <div style="font-size:13px;color:var(--text2)" id="oppSubtitle">Find underserved areas and property targets for new laundromats</div>
+      </div>
+      <!-- Mode toggle -->
+      <div style="display:flex;gap:6px;background:var(--bg3);padding:4px;border-radius:10px;border:1px solid var(--border)">
+        <button id="opp-mode-gaps" class="opp-mode-btn active" onclick="setOppMode('gaps')">🌡️ Find Gaps</button>
+        <button id="opp-mode-properties" class="opp-mode-btn" onclick="setOppMode('properties')">🏪 Find Properties</button>
+      </div>
+    </div>
+
+    <!-- Search bar -->
+    <div class="search-section" style="margin-bottom:16px">
+      <div class="search-label">Search location</div>
+      <div class="search-row">
+        <input type="text" id="oppCityIn" class="search-input" placeholder="City, state or zip — e.g. Hartford, CT or 06040"
+          onkeydown="if(event.key==='Enter') runOppSearch()" />
+        <button class="btn-primary" id="oppSearchBtn" onclick="runOppSearch()">Search</button>
+      </div>
+    </div>
+
+    <!-- Gap mode controls -->
+    <div id="oppGapControls" style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+      <div style="font-size:12px;color:var(--text2);font-family:'DM Mono',monospace">Search radius:</div>
+      <div style="display:flex;gap:6px">
+        <button class="opp-radius-btn active" data-miles="3" onclick="setOppRadius(3)">3 mi</button>
+        <button class="opp-radius-btn" data-miles="5" onclick="setOppRadius(5)">5 mi</button>
+        <button class="opp-radius-btn" data-miles="10" onclick="setOppRadius(10)">10 mi</button>
+        <button class="opp-radius-btn" data-miles="15" onclick="setOppRadius(15)">15 mi</button>
+      </div>
+      <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-left:8px">
+        🌡️ Hot = high population, few laundromats &nbsp;·&nbsp; ❄️ Cool = well served
+      </div>
+    </div>
+
+    <!-- Heatmap legend -->
+    <div id="oppGapLegend" style="display:flex;gap:16px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)">
+        <div style="width:80px;height:8px;border-radius:4px;background:linear-gradient(to right,#0000ff,#00ffff,#00ff00,#ffff00,#ff0000)"></div>
+        <span>Underserved → Well served</span>
+      </div>
+      <div style="display:flex;gap:10px">
+        <div class="legend-item"><div class="legend-dot" style="background:#e8ff47;border:1px solid #00000044"></div>Existing laundromat</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1E88E5;border:2px solid #000"></div>CRM lead</div>
+      </div>
+    </div>
+
+    <!-- Map area -->
+    <div id="oppMapContainer" style="position:relative;border-radius:var(--radius);overflow:hidden;width:100%;height:calc(100vh - 340px);min-height:400px;background:var(--bg2);border:1px solid var(--border)">
+      <div id="oppMap" style="width:100%;height:100%">
+        <div class="map-empty" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+          <span style="font-size:32px">🌡️</span>
+          <div style="font-size:14px;font-weight:500">Find Gaps in Laundromat Coverage</div>
+          <div style="font-size:12px;color:var(--text2);text-align:center;max-width:400px">Search a city or zip above. Hot zones show areas with high population density but few laundromats — prime targets for outreach.</div>
+        </div>
+      </div>
+      <!-- Loading overlay -->
+      <div id="oppMapLoading" style="display:none;position:absolute;inset:0;background:rgba(10,10,10,0.7);align-items:center;justify-content:center;flex-direction:column;gap:10px;z-index:10">
+        <div class="spinner"></div>
+        <div style="font-size:13px;color:var(--text2)" id="oppLoadingText">Analyzing coverage...</div>
+      </div>
+    </div>
+
+    <!-- Results summary -->
+    <div id="oppResultsSummary" style="display:none;margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">
+      <div class="stat-card"><div class="stat-num" id="opp-s-laundromats" style="color:var(--accent)">0</div><div class="stat-lbl">laundromats found</div></div>
+      <div class="stat-card"><div class="stat-num" id="opp-s-gaps" style="color:#ff6b6b">0</div><div class="stat-lbl">high-gap zones</div></div>
+      <div class="stat-card"><div class="stat-num" id="opp-s-crm" style="color:#1E88E5">0</div><div class="stat-lbl">already in CRM</div></div>
+      <div class="stat-card"><div class="stat-num" id="opp-s-radius" style="color:var(--teal)">0 mi</div><div class="stat-lbl">search radius</div></div>
+    </div>
   </div>
 
   <!-- CRM PAGE -->
@@ -738,13 +821,14 @@ function updateSavedUI() {
 }
 
 function switchTab(tab) {
-  ['search','saved','crm'].forEach(t => {
+  ['search','saved','crm','opportunities'].forEach(t => {
     document.getElementById('tab-' + t).classList.toggle('active', t === tab);
     document.getElementById('page-' + t).classList.toggle('active', t === tab);
   });
   if (tab === 'saved') renderSaved();
   if (tab === 'search') initFindLeadsMap();
   if (tab === 'crm') initCRM();
+  if (tab === 'opportunities') initOppMap();
 }
 
 // DISTRESS SCORE (0-100): rating + review signals + owner responsiveness
@@ -1359,7 +1443,7 @@ function loadMapsApi() {
   mapsApiLoaded = true;
   const script = document.createElement('script');
   script.id = 'gmaps-script';
-  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + googleMapsKey + '&callback=initMap&libraries=geometry&loading=async';
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + googleMapsKey + '&callback=initMap&libraries=geometry,visualization&loading=async';
   script.async = true;
   script.defer = true;
   document.head.appendChild(script);
@@ -2730,6 +2814,302 @@ window.addEventListener('load', () => {
   if (mailer) mailer.addEventListener('click', e => { if (e.target === mailer) closeMailerModal(); });
 });
 
+
+// ── OPPORTUNITIES TAB ────────────────────────────────────────────────
+let oppMap = null;
+let oppHeatmap = null;
+let oppMarkers = [];
+let oppMode = 'gaps';
+let oppRadius = 3; // miles
+let oppSearchResults = null;
+
+function setOppMode(mode) {
+  oppMode = mode;
+  document.getElementById('opp-mode-gaps').classList.toggle('active', mode === 'gaps');
+  document.getElementById('opp-mode-properties').classList.toggle('active', mode === 'properties');
+  document.getElementById('oppGapControls').style.display = mode === 'gaps' ? 'flex' : 'none';
+  document.getElementById('oppGapLegend').style.display = mode === 'gaps' ? 'flex' : 'none';
+  // Re-run search if we already have results
+  if (oppSearchResults) renderOppResults();
+}
+
+function setOppRadius(miles) {
+  oppRadius = miles;
+  document.querySelectorAll('.opp-radius-btn').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.miles) === miles);
+  });
+  if (oppSearchResults) renderOppResults();
+}
+
+function initOppMap() {
+  if (oppMap) return; // already initialized
+  if (!googleMapsKey) {
+    preloadMapsKey().then(() => {
+      if (googleMapsKey) waitForMapsAndRun(createOppMap);
+    });
+    return;
+  }
+  if (window._mapsReady && typeof google !== 'undefined' && google.maps) {
+    createOppMap();
+    return;
+  }
+  waitForMapsAndRun(createOppMap);
+}
+
+function createOppMap() {
+  const mapDiv = document.getElementById('oppMap');
+  mapDiv.innerHTML = '';
+  oppMap = new google.maps.Map(mapDiv, {
+    center: { lat: 41.7, lng: -72.7 }, // Connecticut center
+    zoom: 9,
+    mapTypeId: 'roadmap',
+    styles: getDarkMapStyles(),
+    zoomControl: true,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
+  });
+  // Place CRM leads as blue circles on the opp map
+  placeOppCRMMarkers();
+}
+
+function placeOppCRMMarkers() {
+  if (!oppMap || !crmLeads.length) return;
+  crmLeads.filter(l => l.lat && l.lng).forEach(lead => {
+    new google.maps.Marker({
+      position: { lat: lead.lat, lng: lead.lng },
+      map: oppMap,
+      title: lead.name + ' (CRM)',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: '#1E88E5',
+        fillOpacity: 0.8,
+        strokeColor: '#000',
+        strokeWeight: 1.5,
+      },
+      zIndex: 50,
+    });
+  });
+}
+
+async function runOppSearch() {
+  const city = document.getElementById('oppCityIn').value.trim();
+  if (!city) return;
+
+  // Show loading
+  const loading = document.getElementById('oppMapLoading');
+  loading.style.display = 'flex';
+  document.getElementById('oppLoadingText').textContent = 'Searching for laundromats...';
+  document.getElementById('oppSearchBtn').disabled = true;
+  document.getElementById('oppSubtitle').textContent = `Analyzing coverage for ${city}...`;
+
+  try {
+    // Fetch laundromats in the area (reuse existing places API)
+    const res = await fetch(`/api/places?location=${encodeURIComponent(city)}&radius=${oppRadius * 1609}`, {
+      headers: authHeaders()
+    });
+    if (!res.ok) throw new Error('Search failed');
+    const data = await res.json();
+
+    document.getElementById('oppLoadingText').textContent = 'Building coverage map...';
+
+    oppSearchResults = {
+      city,
+      leads: (data.leads || []).map((l, i) => ({
+        ...l,
+        id: l.id || 'opp_' + i,
+        distressScore: calcAllScores(l).distress,
+        densityScore: calcAllScores(l).density,
+        desirabilityScore: calcAllScores(l).desirability,
+      })),
+      mapsKey: data.mapsKey,
+      center: null,
+    };
+
+    if (data.mapsKey) googleMapsKey = data.mapsKey;
+
+    await renderOppResults();
+
+  } catch(e) {
+    document.getElementById('oppSubtitle').textContent = 'Search failed: ' + e.message;
+  } finally {
+    loading.style.display = 'none';
+    document.getElementById('oppSearchBtn').disabled = false;
+  }
+}
+
+async function renderOppResults() {
+  if (!oppSearchResults) return;
+  const { leads, city } = oppSearchResults;
+
+  // Ensure map exists
+  if (!oppMap) {
+    waitForMapsAndRun(() => renderOppResults());
+    return;
+  }
+
+  // Clear existing markers and heatmap
+  oppMarkers.forEach(m => m.setMap(null));
+  oppMarkers = [];
+  if (oppHeatmap) { oppHeatmap.setMap(null); oppHeatmap = null; }
+
+  // Geocode the search center if we don't have it
+  if (!oppSearchResults.center && leads.length > 0) {
+    const first = leads.find(l => l.lat && l.lng);
+    if (first) oppSearchResults.center = { lat: first.lat, lng: first.lng };
+  }
+
+  if (oppSearchResults.center) {
+    oppMap.setCenter(oppSearchResults.center);
+    oppMap.setZoom(oppRadius <= 3 ? 13 : oppRadius <= 5 ? 12 : oppRadius <= 10 ? 11 : 10);
+  }
+
+  if (oppMode === 'gaps') {
+    renderGapHeatmap(leads);
+  }
+
+  // Always place laundromat markers
+  const leadsWithCoords = leads.filter(l => l.lat && l.lng);
+  leadsWithCoords.forEach(lead => {
+    const inCRM = crmLeads.some(c => c.id === lead.id || (c.name === lead.name && c.address === lead.address));
+    const marker = new google.maps.Marker({
+      position: { lat: lead.lat, lng: lead.lng },
+      map: oppMap,
+      title: lead.name,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 7,
+        fillColor: inCRM ? '#1E88E5' : '#e8ff47',
+        fillOpacity: 0.9,
+        strokeColor: '#000',
+        strokeWeight: 1.5,
+      },
+      zIndex: 100,
+    });
+
+    const infoWindow = new google.maps.InfoWindow({
+      content: `<div style="font-family:'DM Sans',sans-serif;padding:4px;min-width:180px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:2px;color:#1a1a1a">${lead.name}</div>
+        <div style="font-size:11px;color:#555;margin-bottom:4px">${lead.address || ''}</div>
+        <div style="font-size:11px;color:#555">⭐ ${lead.rating || 'N/A'} · ${lead.reviewCount || 0} reviews</div>
+        ${inCRM ? '<div style="margin-top:4px;font-size:11px;color:#1E88E5;font-weight:600">📊 In your CRM</div>' : ''}
+      </div>`
+    });
+    marker.addListener('click', () => infoWindow.open(oppMap, marker));
+    oppMarkers.push(marker);
+  });
+
+  // Update summary stats
+  const gapZones = computeGapZones(leads);
+  document.getElementById('opp-s-laundromats').textContent = leads.length;
+  document.getElementById('opp-s-gaps').textContent = gapZones;
+  document.getElementById('opp-s-crm').textContent = leads.filter(l =>
+    crmLeads.some(c => c.id === l.id || (c.name === l.name && c.address === l.address))
+  ).length;
+  document.getElementById('opp-s-radius').textContent = oppRadius + ' mi';
+  document.getElementById('oppResultsSummary').style.display = 'grid';
+  document.getElementById('oppSubtitle').textContent =
+    `${leads.length} laundromats found within ${oppRadius} miles of ${city} · ${gapZones} underserved zones identified`;
+}
+
+function renderGapHeatmap(leads) {
+  if (!oppMap || typeof google === 'undefined' || !google.maps.visualization) return;
+
+  // Build heatmap data: grid of points weighted by population density MINUS laundromat coverage
+  // We create a fine grid around the search area and weight each point:
+  //   high weight = high density area, few nearby laundromats = HOT (underserved)
+  //   low weight = low density OR many nearby laundromats = COOL (well served)
+
+  const leadsWithCoords = leads.filter(l => l.lat && l.lng);
+  if (!leadsWithCoords.length) return;
+
+  // Get bounding area
+  const center = oppSearchResults.center || { lat: leadsWithCoords[0].lat, lng: leadsWithCoords[0].lng };
+  const radiusDeg = (oppRadius * 1.609) / 111; // km to degrees approx
+  const gridSize = 20; // 20x20 grid
+  const heatData = [];
+
+  for (let i = 0; i <= gridSize; i++) {
+    for (let j = 0; j <= gridSize; j++) {
+      const lat = center.lat - radiusDeg + (2 * radiusDeg * i / gridSize);
+      const lng = center.lng - radiusDeg * 1.5 + (3 * radiusDeg * j / gridSize);
+
+      // Count laundromats within 0.5 miles of this grid point
+      const nearbyCount = leadsWithCoords.filter(l => {
+        const dlat = l.lat - lat, dlng = l.lng - lng;
+        const distMiles = Math.sqrt(dlat * dlat + dlng * dlng) * 69;
+        return distMiles < 0.5;
+      }).length;
+
+      // Use census density from nearby leads as density proxy
+      const nearbyLeads = leadsWithCoords.filter(l => {
+        const dlat = l.lat - lat, dlng = l.lng - lng;
+        return Math.sqrt(dlat * dlat + dlng * dlng) * 69 < 1.5;
+      });
+      const avgDensity = nearbyLeads.length > 0
+        ? nearbyLeads.reduce((s, l) => s + (l.densityScore || 30), 0) / nearbyLeads.length
+        : 30;
+
+      // Weight: high density + low coverage = hot
+      // Invert: we want HOT to mean "underserved" (good opportunity)
+      const coverage = Math.min(nearbyCount * 30, 100);
+      const weight = Math.max(0, (avgDensity - coverage * 0.5) / 100);
+
+      if (weight > 0.05) {
+        heatData.push({
+          location: new google.maps.LatLng(lat, lng),
+          weight,
+        });
+      }
+    }
+  }
+
+  oppHeatmap = new google.maps.visualization.HeatmapLayer({
+    data: heatData,
+    map: oppMap,
+    radius: Math.round(oppRadius * 18),
+    opacity: 0.7,
+    gradient: [
+      'rgba(0, 0, 255, 0)',
+      'rgba(0, 128, 255, 0.6)',
+      'rgba(0, 255, 200, 0.7)',
+      'rgba(0, 255, 0, 0.75)',
+      'rgba(255, 255, 0, 0.8)',
+      'rgba(255, 128, 0, 0.85)',
+      'rgba(255, 0, 0, 0.9)',
+    ],
+  });
+}
+
+function computeGapZones(leads) {
+  // Count distinct areas with high density and low coverage
+  // Simple approach: divide into quadrants and count hot ones
+  if (!leads.length || !oppSearchResults.center) return 0;
+  const center = oppSearchResults.center;
+  const radiusDeg = (oppRadius * 1.609) / 111;
+  const quadrants = 16;
+  let hotCount = 0;
+
+  for (let i = 0; i < quadrants; i++) {
+    const angle = (i / quadrants) * 2 * Math.PI;
+    const qLat = center.lat + Math.sin(angle) * radiusDeg * 0.6;
+    const qLng = center.lng + Math.cos(angle) * radiusDeg * 0.6;
+
+    const nearby = leads.filter(l => {
+      if (!l.lat || !l.lng) return false;
+      const d = Math.sqrt(Math.pow(l.lat - qLat, 2) + Math.pow(l.lng - qLng, 2)) * 69;
+      return d < 0.8;
+    });
+
+    const avgDensity = nearby.length > 0
+      ? nearby.reduce((s, l) => s + (l.densityScore || 30), 0) / nearby.length : 30;
+
+    // Hot if density > 50 and fewer than 2 laundromats nearby
+    if (avgDensity > 50 && nearby.length < 2) hotCount++;
+  }
+  return hotCount;
+}
 </script>
 
 <!-- BATCH TOUCHPOINT MODAL -->

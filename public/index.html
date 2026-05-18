@@ -509,6 +509,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:#FDD835;border:1px solid #00000044"></div>1st letter sent</div>
       <div class="legend-item"><div class="legend-dot" style="background:#FB8C00;border:1px solid #00000044"></div>2nd letter sent</div>
       <div class="legend-item"><div class="legend-dot" style="background:#43A047;border:1px solid #00000044"></div>Responded</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#9E9E9E;border:1px solid #00000044;opacity:0.45"></div>Flagged (not a target)</div>
       <div class="legend-item" style="font-weight:600;color:var(--text2);font-size:10px;text-transform:uppercase;letter-spacing:.05em;width:100%;margin-bottom:2px;margin-top:6px">CRM campaigns (circles)</div>
       <div class="legend-item"><div class="legend-dot" style="background:#9E9E9E;border:2px solid #000"></div>Not contacted</div>
       <div class="legend-item"><div class="legend-dot" style="background:#FDD835;border:2px solid #000"></div>Letter sent</div>
@@ -647,10 +648,17 @@ Sincerely,</textarea>
       <div>
         <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Campaigns</div>
         <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
-          <!-- CRM search bar -->
-          <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg3)">
+          <!-- CRM search + sort bar -->
+          <div style="padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;gap:6px;align-items:center">
             <input type="text" id="crmSearchInput" placeholder="Search campaigns..." oninput="renderCRMList()"
-              style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text1);font-family:'DM Sans',sans-serif;box-sizing:border-box" />
+              style="flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--text1);font-family:'DM Sans',sans-serif;min-width:0" />
+            <select id="crmSortSelect" onchange="renderCRMList()"
+              style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;flex-shrink:0">
+              <option value="status">By status</option>
+              <option value="recent">Most recent touch</option>
+              <option value="oldest">Least recent touch</option>
+              <option value="name">Name A–Z</option>
+            </select>
           </div>
           <div class="crm-selection-bar" id="crmSelectionBar">
             <div class="crm-sel-count" id="crmSelCount">Select leads to act on them in bulk</div>
@@ -1131,11 +1139,12 @@ function getVerification(id) {
 }
 function setVerification(id, state) {
   const v = getVerifications();
-  // Toggle off if clicking the same state
   v[id] = v[id] === state ? 'unverified' : state;
   localStorage.setItem('leadVerifications', JSON.stringify(v));
   renderSaved();
   updateSavedSelectionBar();
+  // Refresh map markers so flagged leads update visually
+  if (markers.length) refreshSearchMarkers();
 }
 function openStreetView(lat, lng) {
   window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`, '_blank');
@@ -1163,6 +1172,11 @@ async function moveConfirmedToCRM() {
   if (errors.length) {
     alert(`Added ${added} of ${confirmed.length} to CRM.\n\nErrors:\n` + errors.join('\n'));
   } else {
+    // Remove successfully moved leads from saved list
+    const movedIds = new Set(confirmed.map(l => l.id));
+    setSaved(getSaved().filter(l => !movedIds.has(l.id)));
+    updateSavedCount();
+    renderSaved();
     btn.textContent = `✓ Added ${added} to CRM!`;
     btn.style.color = '#43A047';
     setTimeout(() => { updateSavedSelectionBar(); btn.style.color = ''; }, 2500);
@@ -1547,10 +1561,19 @@ function renderMap() {
   document.getElementById('mapSubtitle').textContent = leadsWithCoords.length + ' new leads · ' + crmLeads.filter(l=>l.lat&&l.lng).length + ' CRM locations';
 }
 
-function buildMarkerIcon(status, isHighlighted) {
+function buildMarkerIcon(status, isHighlighted, isFlagged) {
+  if (isFlagged) {
+    // Grey X-shape for flagged leads — not a target
+    return {
+      path: 'M -6,-6 L 6,6 M 6,-6 L -6,6',
+      scale: isHighlighted ? 1.4 : 1,
+      strokeColor: '#9E9E9E',
+      strokeWeight: isHighlighted ? 3 : 2,
+      fillColor: 'transparent',
+      fillOpacity: 0,
+    };
+  }
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.none;
-  // Search result pins: use the standard Google Maps teardrop (BACKWARD_CLOSED_ARROW looks like a pin)
-  // "none" status = bright accent yellow so new leads pop; contacted = their status color
   const fillColor = status === 'none' ? '#e8ff47' : cfg.color;
   return {
     path: 'M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z',
@@ -1561,6 +1584,20 @@ function buildMarkerIcon(status, isHighlighted) {
     strokeWeight: isHighlighted ? 2 : 1,
     anchor: new google.maps.Point(0, 0),
   };
+}
+
+function refreshSearchMarkers() {
+  // Re-render all search result markers with updated flagged state
+  if (!map || !markers.length) return;
+  const leads = allLeads.filter(l => l.lat && l.lng);
+  markers.forEach((marker, i) => {
+    if (!leads[i]) return;
+    const lead = leads[i];
+    const status = getStatus(lead.id);
+    const isFlagged = getVerification(lead.id) === 'flagged';
+    marker.setIcon(buildMarkerIcon(status, i === activeMarkerIndex, isFlagged));
+    marker.setOpacity(isFlagged ? 0.45 : 1);
+  });
 }
 
 function placeMarkers() {
@@ -1575,8 +1612,9 @@ function placeMarkers() {
       position: { lat: lead.lat, lng: lead.lng },
       map,
       title: lead.name,
-      icon: buildMarkerIcon(status, false),
+      icon: buildMarkerIcon(status, false, getVerification(lead.id) === 'flagged'),
       zIndex: status === 'responded' ? 100 : status === 'none' ? 1 : 50,
+      opacity: getVerification(lead.id) === 'flagged' ? 0.45 : 1,
     });
 
     marker.addListener('click', () => selectLead(idx, 'pin'));
@@ -1588,7 +1626,7 @@ function selectLead(idx, source) {
   // Unhighlight previous
   if (activeMarkerIndex !== null && markers[activeMarkerIndex]) {
     const prevLead = allLeads.filter(l => l.lat && l.lng)[activeMarkerIndex];
-    markers[activeMarkerIndex].setIcon(buildMarkerIcon(getStatus(prevLead.id), false));
+    markers[activeMarkerIndex].setIcon(buildMarkerIcon(getStatus(prevLead.id), false, getVerification(prevLead.id) === 'flagged'));
     markers[activeMarkerIndex].setZIndex(1);
   }
 
@@ -1597,7 +1635,7 @@ function selectLead(idx, source) {
   if (!lead || !markers[idx]) return;
 
   // Highlight marker
-  markers[idx].setIcon(buildMarkerIcon(getStatus(lead.id), true));
+  markers[idx].setIcon(buildMarkerIcon(getStatus(lead.id), true, getVerification(lead.id) === 'flagged'));
   markers[idx].setZIndex(200);
 
   // Pan map to marker
@@ -1686,7 +1724,7 @@ function refreshMapMarkers() {
   const statuses = getStatuses();
   allLeads.filter(l => l.lat && l.lng).forEach((lead, i) => {
     if (!markers[i]) return;
-    markers[i].setIcon(buildMarkerIcon(statuses[lead.id] || 'none', i === activeMarkerIndex));
+    markers[i].setIcon(buildMarkerIcon(statuses[lead.id] || 'none', i === activeMarkerIndex, getVerification(lead.id) === 'flagged'));
   });
   // Also re-render the list to update status dots
   if (document.getElementById('page-search').classList.contains('active')) renderMapList();
@@ -2005,11 +2043,37 @@ function renderCRMList() {
 
   const query = (document.getElementById('crmSearchInput')?.value || '').toLowerCase().trim();
 
-  // Sort: overdue first, then due-soon, then waiting, then responded/done
+  const crmSort = document.getElementById('crmSortSelect')?.value || 'status';
+
+  function getLastTouchDate(lead) {
+    const touches = lead.touchpoints || [];
+    if (!touches.length) return null;
+    return touches.reduce((latest, t) => {
+      const d = new Date(t.sent_date);
+      return !latest || d > latest ? d : latest;
+    }, null);
+  }
+
   const order = { overdue: 0, 'due-soon': 1, none: 2, waiting: 3, responded: 4, done: 5 };
   const sorted = [...crmLeads]
     .filter(l => !query || l.name.toLowerCase().includes(query) || (l.address || '').toLowerCase().includes(query))
     .sort((a, b) => {
+      if (crmSort === 'recent') {
+        const da = getLastTouchDate(a), db = getLastTouchDate(b);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return db - da; // most recent first
+      }
+      if (crmSort === 'oldest') {
+        const da = getLastTouchDate(a), db = getLastTouchDate(b);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+        return da - db; // oldest first
+      }
+      if (crmSort === 'name') return a.name.localeCompare(b.name);
+      // default: by status
       const sa = getFollowUpStatus(a), sb = getFollowUpStatus(b);
       return (order[sa.status] ?? 3) - (order[sb.status] ?? 3);
     });

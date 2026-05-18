@@ -33,8 +33,10 @@ export default async function handler(req, res) {
       if (stateResult) bestResult = stateResult;
     }
     const { lat, lng } = bestResult.geometry.location;
+    const viewport = bestResult.geometry.viewport || null;
+    const placeId = bestResult.place_id || null;
 
-    const zipComponent = geoData.results[0].address_components?.find(c => c.types.includes('postal_code'));
+    const zipComponent = bestResult.address_components?.find(c => c.types.includes('postal_code'));
     const zipCode = zipComponent?.short_name || null;
 
     // Use embedded census data instead of live API call (Census API is blocked by Vercel network)
@@ -47,7 +49,7 @@ export default async function handler(req, res) {
     const places = (searchData.results || []).slice(0, 20);
 
     if (places.length === 0) {
-      return res.status(200).json({ leads: [], censusData, mapsKey: apiKey });
+      return res.status(200).json({ leads: [], censusData, mapsKey: apiKey, center: { lat, lng }, viewport, placeId });
     }
 
     const leads = await Promise.all(
@@ -101,7 +103,7 @@ export default async function handler(req, res) {
     );
 
     const validLeads = leads.filter(Boolean);
-    return res.status(200).json({ leads: validLeads, total: validLeads.length, mapsKey: apiKey });
+    return res.status(200).json({ leads: validLeads, total: validLeads.length, mapsKey: apiKey, center: { lat, lng }, viewport, placeId });
 
   } catch (err) {
     console.error('Places API error:', err);

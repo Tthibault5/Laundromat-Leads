@@ -3016,69 +3016,75 @@ async function renderOppResults() {
 function renderGapHeatmap(leads) {
   if (!oppMap || typeof google === 'undefined' || !google.maps.visualization) return;
 
-  // Build heatmap data: grid of points weighted by population density MINUS laundromat coverage
-  // We create a fine grid around the search area and weight each point:
-  //   high weight = high density area, few nearby laundromats = HOT (underserved)
-  //   low weight = low density OR many nearby laundromats = COOL (well served)
-
   const leadsWithCoords = leads.filter(l => l.lat && l.lng);
   if (!leadsWithCoords.length) return;
 
-  // Get bounding area
   const center = oppSearchResults.center || { lat: leadsWithCoords[0].lat, lng: leadsWithCoords[0].lng };
-  const radiusDeg = (oppRadius * 1.609) / 111; // km to degrees approx
-  const gridSize = 20; // 20x20 grid
+  const radiusDeg = (oppRadius * 1.609) / 111;
+
+  // Scale grid density with radius: 3mi=30, 5mi=36, 10mi=44, 15mi=50
+  const gridSize = Math.round(20 + oppRadius * 2);
+
+  // Scale the "nearby" check radius proportionally with search radius
+  const coverageCheckMiles = Math.max(0.5, oppRadius * 0.15);
+  const densityCheckMiles  = Math.max(1.0, oppRadius * 0.25);
+
   const heatData = [];
 
   for (let i = 0; i <= gridSize; i++) {
     for (let j = 0; j <= gridSize; j++) {
       const lat = center.lat - radiusDeg + (2 * radiusDeg * i / gridSize);
-      const lng = center.lng - radiusDeg * 1.5 + (3 * radiusDeg * j / gridSize);
+      const lng = center.lng - radiusDeg * 1.3 + (2.6 * radiusDeg * j / gridSize);
 
-      // Count laundromats within 0.5 miles of this grid point
       const nearbyCount = leadsWithCoords.filter(l => {
         const dlat = l.lat - lat, dlng = l.lng - lng;
-        const distMiles = Math.sqrt(dlat * dlat + dlng * dlng) * 69;
-        return distMiles < 0.5;
+        return Math.sqrt(dlat * dlat + dlng * dlng) * 69 < coverageCheckMiles;
       }).length;
 
-      // Use census density from nearby leads as density proxy
       const nearbyLeads = leadsWithCoords.filter(l => {
         const dlat = l.lat - lat, dlng = l.lng - lng;
-        return Math.sqrt(dlat * dlat + dlng * dlng) * 69 < 1.5;
+        return Math.sqrt(dlat * dlat + dlng * dlng) * 69 < densityCheckMiles;
       });
       const avgDensity = nearbyLeads.length > 0
-        ? nearbyLeads.reduce((s, l) => s + (l.densityScore || 30), 0) / nearbyLeads.length
-        : 30;
+        ? nearbyLeads.reduce((s, l) => s + (l.densityScore || 25), 0) / nearbyLeads.length
+        : 25;
 
-      // Weight: high density + low coverage = hot
-      // Invert: we want HOT to mean "underserved" (good opportunity)
-      const coverage = Math.min(nearbyCount * 30, 100);
-      const weight = Math.max(0, (avgDensity - coverage * 0.5) / 100);
+      const densityNorm  = avgDensity / 100;
+      const coverageNorm = Math.min(nearbyCount / 3, 1);
+      const weight = Math.max(0, densityNorm - coverageNorm * 0.8);
 
       if (weight > 0.05) {
-        heatData.push({
-          location: new google.maps.LatLng(lat, lng),
-          weight,
-        });
+        heatData.push({ location: new google.maps.LatLng(lat, lng), weight });
       }
     }
   }
 
+  // Pixel radius scales with zoom so blobs stay proportional when zooming in/out
+  const getPixelRadius = () => {
+    const zoom = oppMap.getZoom();
+    return Math.round(30 + (zoom - 8) * 5);
+  };
+
   oppHeatmap = new google.maps.visualization.HeatmapLayer({
     data: heatData,
     map: oppMap,
-    radius: Math.round(oppRadius * 18),
-    opacity: 0.7,
+    radius: getPixelRadius(),
+    opacity: 0.72,
     gradient: [
       'rgba(0, 0, 255, 0)',
-      'rgba(0, 128, 255, 0.6)',
-      'rgba(0, 255, 200, 0.7)',
-      'rgba(0, 255, 0, 0.75)',
-      'rgba(255, 255, 0, 0.8)',
-      'rgba(255, 128, 0, 0.85)',
-      'rgba(255, 0, 0, 0.9)',
+      'rgba(0, 80, 255, 0.5)',
+      'rgba(0, 200, 255, 0.65)',
+      'rgba(0, 255, 120, 0.72)',
+      'rgba(180, 255, 0, 0.78)',
+      'rgba(255, 200, 0, 0.84)',
+      'rgba(255, 80, 0, 0.9)',
+      'rgba(255, 0, 0, 0.95)',
     ],
+  });
+
+  // Keep radius proportional as user zooms
+  oppMap.addListener('zoom_changed', () => {
+    if (oppHeatmap) oppHeatmap.set('radius', getPixelRadius());
   });
 }
 

@@ -12,14 +12,27 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'Google Places API key not configured' });
 
   try {
+    // Add region bias toward US and prefer results that match the query's state if specified
     const geoRes = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&region=us&key=${apiKey}`
     );
     const geoData = await geoRes.json();
     if (!geoData.results || geoData.results.length === 0) {
       return res.status(404).json({ error: 'Location not found' });
     }
-    const { lat, lng } = geoData.results[0].geometry.location;
+    // Prefer a result whose formatted_address matches the queried state abbreviation
+    // e.g. "Greenwich CT" should prefer CT over NY results
+    const stateMatch = location.match(/\b([A-Z]{2})\b/i);
+    const stateAbbr = stateMatch ? stateMatch[1].toUpperCase() : null;
+    let bestResult = geoData.results[0];
+    if (stateAbbr) {
+      const stateResult = geoData.results.find(r => {
+        const addrComp = r.address_components || [];
+        return addrComp.some(c => c.types.includes('administrative_area_level_1') && c.short_name === stateAbbr);
+      });
+      if (stateResult) bestResult = stateResult;
+    }
+    const { lat, lng } = bestResult.geometry.location;
 
     const zipComponent = geoData.results[0].address_components?.find(c => c.types.includes('postal_code'));
     const zipCode = zipComponent?.short_name || null;
@@ -28,7 +41,7 @@ export default async function handler(req, res) {
     const censusData = zipCode ? getCensusData(zipCode) : null;
 
     const searchRes = await fetch(
-      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=laundry&keyword=laundromat&key=${apiKey}`
+      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${Math.min(req.query.radius || 5000, 50000)}&type=laundry&keyword=laundromat&key=${apiKey}`
     );
     const searchData = await searchRes.json();
     const places = (searchData.results || []).slice(0, 20);

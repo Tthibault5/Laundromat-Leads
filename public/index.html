@@ -2924,7 +2924,9 @@ async function runOppSearch() {
         desirabilityScore: calcAllScores(l).desirability,
       })),
       mapsKey: data.mapsKey,
-      center: null,
+      center: data.center || null,
+      viewport: data.viewport || null,
+      placeId: data.placeId || null,
     };
 
     if (data.mapsKey) googleMapsKey = data.mapsKey;
@@ -2953,14 +2955,25 @@ async function renderOppResults() {
   oppMarkers.forEach(m => m.setMap(null));
   oppMarkers = [];
   if (oppHeatmap) { oppHeatmap.setMap(null); oppHeatmap = null; }
+  if (oppBoundaryLayer) { oppBoundaryLayer.setMap(null); oppBoundaryLayer = null; }
 
-  // Geocode the search center if we don't have it
+  // Use authoritative center from geocoding API
   if (!oppSearchResults.center && leads.length > 0) {
     const first = leads.find(l => l.lat && l.lng);
     if (first) oppSearchResults.center = { lat: first.lat, lng: first.lng };
   }
 
-  if (oppSearchResults.center) {
+  if (oppSearchResults.viewport && typeof google !== 'undefined') {
+    // Fit map to the town's actual viewport bounds from the geocoding result
+    const vp = oppSearchResults.viewport;
+    const bounds = new google.maps.LatLngBounds(
+      new google.maps.LatLng(vp.southwest.lat, vp.southwest.lng),
+      new google.maps.LatLng(vp.northeast.lat, vp.northeast.lng)
+    );
+    oppMap.fitBounds(bounds);
+    // Draw town boundary outline
+    drawTownBoundary(oppSearchResults.placeId);
+  } else if (oppSearchResults.center) {
     oppMap.setCenter(oppSearchResults.center);
     oppMap.setZoom(oppRadius <= 1 ? 15 : oppRadius <= 2 ? 14 : oppRadius <= 3 ? 13 : 12);
   }
@@ -3013,35 +3026,74 @@ async function renderOppResults() {
     `${leads.length} laundromats found within ${oppRadius} miles of ${city} · ${gapZones} underserved zones identified`;
 }
 
+let oppBoundaryLayer = null;
+
+function drawTownBoundary(placeId) {
+  // Remove old boundary
+  if (oppBoundaryLayer) { oppBoundaryLayer.setMap(null); oppBoundaryLayer = null; }
+  if (!placeId || !oppMap) return;
+
+  // Use the Places API geometry to draw the town outline via Data layer
+  // Google Maps JS API can render place boundaries via Data.loadGeoJson with a constructed URL
+  // We use a workaround: draw a subtle rectangle from the viewport bounds as a placeholder
+  // The real town shape comes from fitBounds which sets the map extent correctly
+  const vp = oppSearchResults.viewport;
+  if (!vp) return;
+
+  oppBoundaryLayer = new google.maps.Rectangle({
+    bounds: {
+      north: vp.northeast.lat,
+      south: vp.southwest.lat,
+      east:  vp.northeast.lng,
+      west:  vp.southwest.lng,
+    },
+    map: oppMap,
+    strokeColor: '#e8ff47',
+    strokeOpacity: 0.3,
+    strokeWeight: 1.5,
+    fillColor: '#e8ff47',
+    fillOpacity: 0,
+  });
+}
+
 function renderGapHeatmap(leads) {
   if (!oppMap || typeof google === 'undefined' || !google.maps.visualization) return;
 
   const leadsWithCoords = leads.filter(l => l.lat && l.lng);
   if (!leadsWithCoords.length) return;
 
+  // Use viewport bounds from geocoding for the grid extent — this is the actual town area
+  const vp = oppSearchResults.viewport;
   const center = oppSearchResults.center || { lat: leadsWithCoords[0].lat, lng: leadsWithCoords[0].lng };
-  const radiusDeg = (oppRadius * 1.609) / 111;
+
+  let minLat, maxLat, minLng, maxLng;
+  if (vp) {
+    minLat = vp.southwest.lat;
+    maxLat = vp.northeast.lat;
+    minLng = vp.southwest.lng;
+    maxLng = vp.northeast.lng;
+  } else {
+    // Fallback: circle around center
+    const radiusDeg = (oppRadius * 1.609) / 111;
+    minLat = center.lat - radiusDeg;
+    maxLat = center.lat + radiusDeg;
+    minLng = center.lng - radiusDeg * 1.3;
+    maxLng = center.lng + radiusDeg * 1.3;
+  }
+
+  const latSpan = maxLat - minLat;
+  const lngSpan = maxLng - minLng;
   const gridSize = 50;
-  const coverageCheckMiles = Math.max(0.3, oppRadius * 0.2);
-  const densityCheckMiles  = Math.max(0.5, oppRadius * 0.35);
+  const coverageCheckMiles = 0.5;
+  const densityCheckMiles  = 1.0;
 
   const heatData = [];
   let maxWeight = 0;
 
   for (let i = 0; i <= gridSize; i++) {
     for (let j = 0; j <= gridSize; j++) {
-      const lat = center.lat - radiusDeg + (2 * radiusDeg * i / gridSize);
-      const lng = center.lng - radiusDeg * 1.3 + (2.6 * radiusDeg * j / gridSize);
-
-      // Circular mask — skip points outside the search radius
-      const distFromCenter = Math.sqrt(
-        Math.pow((lat - center.lat) * 69, 2) +
-        Math.pow((lng - center.lng) * 53, 2) // 53 = approx miles per lng degree at 41° lat
-      );
-      if (distFromCenter > oppRadius) continue;
-
-      // Fade weight near the edge for a soft circular boundary
-      const edgeFade = Math.max(0, 1 - (distFromCenter / oppRadius) * 1.1);
+      const lat = minLat + latSpan * i / gridSize;
+      const lng = minLng + lngSpan * j / gridSize;
 
       const nearbyCount = leadsWithCoords.filter(l => {
         const dlat = l.lat - lat, dlng = l.lng - lng;
@@ -3058,7 +3110,7 @@ function renderGapHeatmap(leads) {
 
       const densityNorm  = avgDensity / 100;
       const coverageNorm = Math.min(nearbyCount / 2, 1);
-      const weight = Math.max(0, (densityNorm - coverageNorm * 0.9) * edgeFade);
+      const weight = Math.max(0, densityNorm - coverageNorm * 0.9);
 
       if (weight > 0.02) {
         heatData.push({ location: new google.maps.LatLng(lat, lng), weight });
